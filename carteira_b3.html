@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carteira B3 — Painel do Investidor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #090b10;
+    --panel: #12151c;
+    --panel-2: #171b24;
+    --panel-border: #242a37;
+    --text: #e9ecf3;
+    --text-dim: #8991a6;
+    --text-faint: #565e72;
+    --emerald: #21d6a0;
+    --emerald-dim: rgba(33,214,160,.12);
+    --red: #ff5c6c;
+    --red-dim: rgba(255,92,108,.12);
+    --amber: #f2b84b;
+    --amber-dim: rgba(242,184,75,.12);
+    --blue: #5b8cff;
+    --blue-dim: rgba(91,140,255,.12);
+    --violet: #a480ff;
+    --violet-dim: rgba(164,128,255,.12);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: radial-gradient(circle at 12% 0%, #131722 0%, #090b10 45%), var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display:flex;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--emerald-dim); color: var(--emerald); }
+  .num{ font-family:'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+  .display{ font-family:'Space Grotesk', sans-serif; }
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width: 232px;
+    flex-shrink:0;
+    border-right: 1px solid var(--panel-border);
+    display:flex; flex-direction:column;
+    padding: 28px 18px;
+    position: sticky; top:0; height:100vh;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; padding: 0 8px 28px 8px; }
+  .brand-mark{
+    width:34px;height:34px;border-radius:9px;
+    background: linear-gradient(135deg, var(--emerald), var(--blue));
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk'; font-weight:700; color:#04140f; font-size:15px;
+  }
+  .brand-text{ font-family:'Space Grotesk'; font-weight:700; font-size:15.5px; letter-spacing:.2px;}
+  .brand-sub{ font-size:10.5px; color: var(--text-faint); letter-spacing:.6px; text-transform:uppercase; }
+
+  .nav{ display:flex; flex-direction:column; gap:4px; margin-top: 8px;}
+  .nav-item{
+    display:flex; align-items:center; gap:11px;
+    padding: 11px 12px; border-radius: 10px;
+    color: var(--text-dim); font-size: 13.5px; font-weight:500;
+    cursor:pointer; transition: all .15s ease; border: 1px solid transparent;
+  }
+  .nav-item svg{ width:17px; height:17px; opacity:.8; flex-shrink:0; }
+  .nav-item:hover{ background: var(--panel-2); color: var(--text); }
+  .nav-item.active{
+    background: var(--emerald-dim); color: var(--emerald);
+    border-color: rgba(33,214,160,.25);
+  }
+  .nav-item.active svg{ opacity:1; }
+
+  .sidebar-foot{ margin-top:auto; padding: 14px 12px; border-radius:12px; background:var(--panel-2); border:1px solid var(--panel-border);}
+  .sidebar-foot .t{ font-size:11.5px; color:var(--text-dim); line-height:1.5; }
+  .sidebar-foot .t b{ color:var(--text); }
+
+  /* ---------- MAIN ---------- */
+  .main{ flex:1; min-width:0; padding: 28px 40px 60px; max-width:1440px; margin:0 auto; width:100%; box-sizing:border-box; }
+  .topbar{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom: 26px; flex-wrap:wrap; gap:14px;}
+  .topbar h1{ font-family:'Space Grotesk'; font-size: 25px; font-weight:600; letter-spacing:-.3px;}
+  .topbar .sub{ color: var(--text-dim); font-size:13px; margin-top:4px;}
+  .topbar .updated{
+    font-size:11.5px; color:var(--text-faint); background: var(--panel);
+    border:1px solid var(--panel-border); padding:7px 12px; border-radius:20px;
+    display:flex; align-items:center; gap:7px;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--emerald); box-shadow:0 0 8px var(--emerald);}
+
+  .view{ display:none; }
+  .view.active{ display:block; animation: fadein .35s ease; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  /* KPI cards */
+  .kpi-row{ display:grid; grid-template-columns: repeat(5, 1fr); gap:14px; margin-bottom:16px; }
+  .kpi{
+    background: var(--panel); border:1px solid var(--panel-border); border-radius: var(--radius);
+    padding: 16px 18px; position:relative; overflow:hidden;
+  }
+  .kpi .label{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; font-weight:600; display:flex; align-items:center; justify-content:space-between; padding-right:36px;}
+  .kpi .value{ font-family:'Space Grotesk'; font-size:22px; font-weight:600; margin-top:9px; letter-spacing:-.3px;}
+  .kpi .value.pos{ color: var(--emerald); }
+  .kpi .delta{ font-size:11.5px; margin-top:7px; display:flex; align-items:center; gap:5px; font-weight:500;}
+  .kpi .delta.pos{ color:var(--emerald);}
+  .kpi .delta.neg{ color:var(--red);}
+  .kpi .delta.neu{ color:var(--text-dim);}
+  .kpi-icon{ position:absolute; right:16px; top:16px; width:30px;height:30px;border-radius:8px; display:flex;align-items:center;justify-content:center;}
+  .kpi-badge{ font-size:10px; font-weight:700; padding:2px 6px; border-radius:6px; background:var(--emerald-dim); color:var(--emerald);}
+  .kpi-badge.neg{ background:var(--red-dim); color:var(--red);}
+
+  /* rótulos/valores reutilizáveis fora dos cartões de KPI (ex: aba Proventos) */
+  .stat-block{ margin-bottom:18px; }
+  .stat-block:last-child{ margin-bottom:0; }
+  .stat-label{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; font-weight:600; margin-bottom:5px; display:flex; align-items:center; gap:6px;}
+  .stat-value{ font-family:'Space Grotesk'; font-weight:600; font-size:20px; letter-spacing:-.2px; }
+  .stat-value.lg{ font-size:24px; }
+  .card-icon{ width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+
+  .note-banner{
+    display:flex; gap:10px; align-items:flex-start; font-size:11.5px; color:var(--text-faint);
+    background: var(--panel); border:1px solid var(--panel-border); border-radius:10px;
+    padding:10px 14px; margin-bottom:20px; line-height:1.55;
+  }
+  .note-banner b{ color:var(--text-dim); }
+
+  /* sort / allocation */
+  .sort-row{ display:flex; align-items:center; gap:8px 10px; margin-left:auto; flex-wrap:wrap; }
+  .sort-row label{ white-space:nowrap; font-size:11.5px; color:var(--text-faint); }
+  .sort-select{
+    background: var(--panel); border:1px solid var(--panel-border); color:var(--text);
+    font-size:12px; font-family:'Inter'; padding:7px 12px; border-radius:20px; cursor:pointer;
+    outline:none; appearance:none; -webkit-appearance:none; min-width:120px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238991a6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position: right 12px center; padding-right:28px;
+  }
+  .filter-toolbar{ display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:18px;}
+
+  .alloc-card{
+    background: linear-gradient(120deg, rgba(33,214,160,.09), rgba(164,128,255,.05));
+    border:1px solid rgba(33,214,160,.25); border-radius: var(--radius);
+    padding:22px 24px; margin-bottom:26px;
+  }
+  .alloc-head{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; gap:10px;}
+  .alloc-head h3{ font-family:'Space Grotesk'; font-size:16px; font-weight:600;}
+  .alloc-head .sub{ font-size:12px; color:var(--text-dim); margin-top:4px;}
+  .alloc-amount{ font-family:'JetBrains Mono'; font-size:22px; font-weight:700; color:var(--emerald);}
+  .alloc-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;}
+  .alloc-item{
+    background: rgba(9,11,16,.5); border:1px solid var(--panel-border); border-radius:10px; padding:14px 16px;
+  }
+  .alloc-item .rank{ font-size:10px; color:var(--text-faint); font-weight:700; letter-spacing:.4px;}
+  .alloc-item .tk{ font-family:'Space Grotesk'; font-weight:700; font-size:15px; margin-top:4px;}
+  .alloc-item .dy{ font-size:11.5px; color:var(--emerald); font-weight:600; margin-top:4px;}
+  .alloc-item .val{ font-family:'JetBrains Mono'; font-size:13px; color:var(--text); margin-top:8px; padding-top:8px; border-top:1px solid var(--panel-border);}
+  .alloc-item .cotas{ font-size:10.5px; color:var(--text-faint); margin-top:2px;}
+  .alloc-foot{ font-size:11px; color:var(--text-faint); margin-top:14px; line-height:1.55;}
+
+  /* Grid layout */
+  .grid-2{ display:grid; grid-template-columns: 1.15fr .85fr; gap:16px; margin-bottom:16px;}
+  .grid-3{ display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin-bottom:16px;}
+  .card{
+    background: var(--panel); border:1px solid var(--panel-border); border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+  .card-head h3{ font-family:'Space Grotesk'; font-size:15px; font-weight:600;}
+  .card-head .meta{ font-size:11px; color:var(--text-faint);}
+  .chart-wrap{ position:relative; height:230px;}
+  .chart-wrap.tall{ height:280px; }
+  .donut-row{ display:flex; align-items:center; gap:20px; }
+  .donut-row .chart-wrap{ flex-shrink:0; width:180px; height:180px; }
+  .donut-row .legend-list{ flex:1; margin-top:0; justify-content:center; }
+
+  .legend-list{ display:flex; flex-direction:column; gap:9px; margin-top:14px;}
+  .legend-row{ display:flex; align-items:center; justify-content:space-between; font-size:12.5px;}
+  .legend-left{ display:flex; align-items:center; gap:8px; color:var(--text-dim);}
+  .legend-swatch{ width:8px;height:8px;border-radius:2px;}
+  .legend-right{ font-family:'JetBrains Mono'; color:var(--text); font-weight:500;}
+
+  /* Tables */
+  table{ width:100%; border-collapse:collapse; font-size:12.8px;}
+  thead th{
+    text-align:left; color:var(--text-faint); font-weight:600; text-transform:uppercase;
+    font-size:10.5px; letter-spacing:.5px; padding: 0 10px 10px 10px; border-bottom:1px solid var(--panel-border);
+  }
+  thead th.r{ text-align:right;}
+  th.sortable{ cursor:pointer; user-select:none; transition:color .15s ease; }
+  th.sortable:hover{ color:var(--text); }
+  th.sortable .arrow{ display:inline-block; margin-left:4px; opacity:.35; font-size:9px; }
+  th.sortable.active .arrow{ opacity:1; color:var(--emerald); }
+  tbody td{ padding: 11px 10px; border-bottom:1px solid rgba(255,255,255,.03); color:var(--text);}
+  tbody td.r{ text-align:right; font-family:'JetBrains Mono'; }
+  tbody tr:hover{ background: rgba(255,255,255,.015); }
+  .ticker-cell{ display:flex; align-items:center; gap:9px;}
+  .ticker-badge{
+    width:30px;height:30px;border-radius:8px; flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk'; font-weight:700; font-size:10.5px;
+    background: var(--panel-2); border:1px solid var(--panel-border); color: var(--text-dim);
+  }
+  .ticker-name{ font-weight:600; font-size:13px;}
+  .ticker-sub{ font-size:10.8px; color:var(--text-faint); margin-top:1px;}
+  .tag{ font-size:10px; padding:3px 8px; border-radius:20px; font-weight:600; white-space:nowrap;}
+  .tag.papel{ background:var(--blue-dim); color:var(--blue);}
+  .tag.tijolo{ background:var(--amber-dim); color:var(--amber);}
+  .tag.fiagro{ background:var(--violet-dim); color:var(--violet);}
+  .tag.hibrido{ background:var(--emerald-dim); color:var(--emerald);}
+  .bar-mini{ width:60px; height:5px; border-radius:3px; background:var(--panel-border); overflow:hidden; display:inline-block; vertical-align:middle; margin-left:8px;}
+  .bar-mini-fill{ height:100%; background: linear-gradient(90deg, var(--emerald), var(--blue)); }
+
+  .section-title{ font-family:'Space Grotesk'; font-size:15px; font-weight:600; margin: 26px 0 14px 2px; display:flex; align-items:center; gap:10px;}
+  .section-title .n{ font-size:14px; color:var(--text-dim); font-weight:600; font-family:'JetBrains Mono'; letter-spacing:-.1px; }
+
+  /* ---------- MARKET ANALYSIS TAB ---------- */
+  .intro-banner{
+    background: linear-gradient(120deg, rgba(33,214,160,.08), rgba(91,140,255,.05));
+    border:1px solid var(--panel-border); border-radius: var(--radius);
+    padding: 20px 24px; margin-bottom:24px; display:flex; gap:18px; align-items:flex-start;
+  }
+  .intro-banner .ic{ width:38px;height:38px;border-radius:10px; background:var(--emerald-dim); display:flex;align-items:center;justify-content:center; flex-shrink:0;}
+  .intro-banner p{ font-size:13px; color:var(--text-dim); line-height:1.6; max-width: 760px;}
+  .intro-banner p b{ color:var(--text); }
+
+  .filter-row{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+  .chip{
+    padding:7px 14px; border-radius:20px; font-size:12px; font-weight:500;
+    border:1px solid var(--panel-border); background:var(--panel); color:var(--text-dim); cursor:pointer;
+    transition: all .15s ease;
+  }
+  .chip:hover{ color:var(--text); }
+  .chip.active{ background: var(--text); color:#0a0d12; border-color:var(--text);}
+
+  .asset-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
+  .asset-card{
+    background:var(--panel); border:1px solid var(--panel-border); border-radius: var(--radius);
+    padding:20px; display:flex; flex-direction:column; gap:14px;
+  }
+  .asset-card-top{ display:flex; align-items:center; justify-content:space-between;}
+  .asset-id{ display:flex; align-items:center; gap:10px;}
+  .asset-id .badge{
+    width:36px;height:36px;border-radius:9px; background:var(--panel-2); border:1px solid var(--panel-border);
+    display:flex;align-items:center;justify-content:center; font-family:'Space Grotesk'; font-weight:700; font-size:11px;
+  }
+  .asset-id .name{ font-family:'Space Grotesk'; font-weight:600; font-size:14.5px;}
+  .asset-id .sub{ font-size:10.8px; color:var(--text-faint); margin-top:2px;}
+
+  .reco-badge{ padding:5px 11px; border-radius:8px; font-size:11px; font-weight:700; letter-spacing:.2px;}
+  .reco-badge.compra{ background:var(--emerald-dim); color:var(--emerald);}
+  .reco-badge.manter{ background:var(--amber-dim); color:var(--amber);}
+  .reco-badge.reduzir{ background:var(--red-dim); color:var(--red);}
+
+  .gauge-wrap{ display:flex; align-items:center; gap:12px;}
+  .gauge-track{ flex:1; height:8px; border-radius:5px; background:var(--panel-2); overflow:hidden; position:relative;}
+  .gauge-fill{ height:100%; border-radius:5px; }
+  .gauge-pct{ font-family:'JetBrains Mono'; font-weight:600; font-size:13px; width:38px; text-align:right;}
+  .gauge-caption{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.4px; margin-top:-6px;}
+
+  .metric-row{ display:flex; gap:10px;}
+  .metric-box{ flex:1; background:var(--panel-2); border-radius:9px; padding:9px 10px;}
+  .metric-box .l{ font-size:9.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.4px;}
+  .metric-box .v{ font-family:'JetBrains Mono'; font-size:14px; font-weight:600; margin-top:3px;}
+
+  .asset-notes{ font-size:12px; color:var(--text-dim); line-height:1.55; }
+  .asset-notes b{ color:var(--text);}
+
+  .stock-strip{ display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; }
+  .stock-card{
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:12px; padding:16px 18px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .stock-top{ display:flex; justify-content:space-between; align-items:center;}
+  .stock-top .name{ font-family:'Space Grotesk'; font-weight:600; font-size:13.5px;}
+  .stock-top .company{ font-size:10.5px; color:var(--text-faint); margin-top:2px;}
+  .stock-note{ font-size:11.5px; color:var(--text-dim); line-height:1.5;}
+
+  /* ---------- MODAL LANÇAMENTO ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(5,7,10,.72); backdrop-filter:blur(3px);
+    display:none; align-items:center; justify-content:center; z-index:999; padding:20px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-box{
+    background:var(--panel); border:1px solid var(--panel-border); border-radius:16px;
+    width:480px; max-width:100%; padding:24px; max-height:90vh; overflow-y:auto;
+  }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .modal-head h3{ font-family:'Space Grotesk'; font-size:17px; font-weight:600; }
+  .modal-close{ background:none; border:none; color:var(--text-faint); font-size:20px; cursor:pointer; line-height:1; padding:4px; }
+  .modal-close:hover{ color:var(--text); }
+  .toggle-row{ display:flex; background:var(--panel-2); border-radius:10px; padding:4px; gap:4px; margin-bottom:20px; }
+  .toggle-btn{
+    flex:1; padding:10px; border-radius:8px; border:none; background:transparent; color:var(--text-dim);
+    font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
+    transition: all .15s ease; font-family:'Inter';
+  }
+  .toggle-btn.active.compra{ background:var(--emerald-dim); color:var(--emerald); }
+  .toggle-btn.active.venda{ background:var(--red-dim); color:var(--red); }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+  .form-field label{ font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.4px; font-weight:600; display:block; margin-bottom:6px; }
+  .form-field input, .form-field select{
+    width:100%; background:var(--panel-2); border:1px solid var(--panel-border); border-radius:9px;
+    padding:10px 12px; color:var(--text); font-size:13px; font-family:'Inter'; outline:none; box-sizing:border-box;
+  }
+  .form-field input:focus, .form-field select:focus{ border-color:var(--emerald); }
+  .form-field .prefix-wrap{ display:flex; align-items:center; background:var(--panel-2); border:1px solid var(--panel-border); border-radius:9px; overflow:hidden; }
+  .form-field .prefix-wrap span{ padding:0 10px; color:var(--text-faint); font-size:12.5px; border-right:1px solid var(--panel-border); }
+  .form-field .prefix-wrap input{ border:none; background:transparent; }
+  .modal-total{
+    display:flex; justify-content:space-between; align-items:center; background:var(--panel-2);
+    border-radius:10px; padding:14px 16px; margin-bottom:20px; font-weight:600; font-size:13px;
+  }
+  .modal-total span{ font-family:'JetBrains Mono'; font-size:17px; color:var(--emerald); }
+  .modal-actions{ display:flex; justify-content:space-between; align-items:center; }
+  .btn-cancel{ background:none; border:none; color:var(--text-dim); font-size:13px; cursor:pointer; padding:10px 4px; }
+  .btn-cancel:hover{ color:var(--text); }
+  .btn-primary{
+    background:var(--text); color:#0a0d12; border:none; border-radius:10px; padding:11px 20px;
+    font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:7px;
+  }
+  .btn-primary:hover{ opacity:.9; }
+  .order-badge{ font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:6px; }
+  .order-badge.compra{ background:var(--emerald-dim); color:var(--emerald); }
+  .order-badge.venda{ background:var(--red-dim); color:var(--red); }
+  .btn-del-row{ background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:13px; padding:4px 6px; }
+  .btn-del-row:hover{ color:var(--red); }
+
+  .disclaimer{
+    margin-top:28px; padding:16px 20px; border-radius:12px; border:1px dashed var(--panel-border);
+    font-size:11.5px; color:var(--text-faint); line-height:1.6;
+  }
+
+  @media (max-width: 1200px){
+    .kpi-row{ grid-template-columns: repeat(2,1fr); }
+    .grid-2{ grid-template-columns:1fr; }
+    .grid-3{ grid-template-columns:1fr; }
+    .asset-grid{ grid-template-columns: repeat(2,1fr); }
+    .stock-strip{ grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 760px){
+    .sidebar{ display:none; }
+    .kpi-row{ grid-template-columns:1fr; }
+    .asset-grid{ grid-template-columns:1fr; }
+    .stock-strip{ grid-template-columns:1fr; }
+    .main{ padding:20px 16px 50px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">
+    <div class="brand-mark">B3</div>
+    <div>
+      <div class="brand-text">Minha Carteira</div>
+      <div class="brand-sub">Painel do Investidor</div>
+    </div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" data-view="carteira">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      Visão Geral
+    </div>
+    <div class="nav-item" data-view="posicoes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      Posições
+    </div>
+    <div class="nav-item" data-view="mercado">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+      Análise de Mercado
+    </div>
+    <div class="nav-item" data-view="proventos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 1 3 2.2c0 3-6 1.3-6 4.3 0 1.3 1.3 2.5 3 2.5s3-1.1 3-2.5"/></svg>
+      Proventos
+    </div>
+    <div class="nav-item" data-view="lancamentos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Lançamentos
+    </div>
+  </div>
+  <div class="sidebar-foot">
+    <div class="t"><b>Fonte dos dados:</b> extrato consolidado B3 (Nu Investimentos), posição de fechamento de junho/2026.</div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ===================== VIEW 1: CARTEIRA ===================== -->
+  <div class="view active" id="view-carteira">
+    <div class="topbar">
+      <div>
+        <h1>Visão Geral da Carteira</h1>
+        <div class="sub">Consolidado de Ações, FIIs e Tesouro Direto</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div class="updated"><span class="dot"></span> Posição de 30/06/2026</div>
+        <button class="chip" id="btnAtualizarCotacoes" style="display:flex; align-items:center; gap:7px; padding:9px 16px; font-weight:600;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+          Atualizar Cotações
+        </button>
+      </div>
+    </div>
+
+    <div class="note-banner" id="cotacoesStatus" style="display:none;"></div>
+
+    <div class="note-banner">
+      <span>ℹ️</span>
+      <div><b>Cotação ao vivo:</b> o botão "Atualizar Cotações" busca o preço atual de cada ativo na <a href="https://hgbrasil.com/finance" target="_blank" style="color:var(--blue)">HG Brasil</a> (API pública brasileira de dados da B3, com CORS liberado para uso direto no navegador — não afiliada à B3 nem à Anthropic). O plano gratuito dá 400 requisições por dia, de sobra pros seus ativos. Crie sua chave grátis em <a href="https://console.hgbrasil.com/keys/new_key_plan" target="_blank" style="color:var(--blue)">console.hgbrasil.com</a> (cadastro rápido) e cole abaixo.</div>
+    </div>
+    <div class="note-banner" style="margin-top:-14px;">
+      <label style="font-size:11.5px; color:var(--text-faint); white-space:nowrap;">Chave HG Brasil:</label>
+      <input type="password" id="brapiToken" placeholder="cole aqui sua chave gratuita" style="flex:1; background:var(--panel-2); border:1px solid var(--panel-border); border-radius:8px; padding:8px 12px; color:var(--text); font-size:12px; outline:none;">
+      <button class="chip" id="btnSalvarToken" style="font-size:11px; padding:7px 12px;">Salvar</button>
+    </div>
+
+    <div class="note-banner">
+      <span>ℹ️</span>
+      <div><b>Fonte dos dados:</b> tudo abaixo vem só das planilhas que você enviou — relatórios consolidados (posição de 30/06/2026) e os dois extratos de movimentação (fev/2025–jul/2026, usados para calcular preço médio e proventos). Nada aqui vem de prints ou de outros apps. <b>Patrimônio Total</b> é o valor de mercado de tudo (Ações + FIIs + Tesouro). <b>Total Investido</b> é só o custo de compra de Ações + FIIs (Tesouro não entra aqui, por isso os dois números não são comparáveis diretamente). MXRF12 e RECR12 (direitos de subscrição já expirados/resolvidos) foram removidos da lista de FIIs.</div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-icon" style="background:var(--blue-dim); color:var(--blue);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v2"/><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h2.5"/></svg>
+        </div>
+        <div class="label">Patrimônio Total</div>
+        <div class="value num" id="kpi-total">R$ 65.010,53</div>
+        <div class="delta neu">Ações + FIIs + Tesouro · posição 30/06</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-icon" style="background:var(--violet-dim); color:var(--violet);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.66 3.13 3 7 3s7-1.34 7-3V6"/><path d="M5 12v6c0 1.66 3.13 3 7 3s7-1.34 7-3v-6"/></svg>
+        </div>
+        <div class="label">Total Investido</div>
+        <div class="value num" id="kpi-investido">R$ 28.812,96</div>
+        <div class="delta neu">Só Ações + FIIs, custo de compra</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-icon" style="background:var(--amber-dim); color:var(--amber);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+        </div>
+        <div class="label">Ganho de Capital</div>
+        <div class="value num" id="kpi-lucro">−R$ 154,05</div>
+        <div class="delta neg" id="kpi-lucro-delta">↓ −0,53% · só variação de preço, sem proventos</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-icon" style="background:var(--emerald-dim); color:var(--emerald);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M3 12.5h18"/><path d="M12 8v13"/><path d="M12 8c-1.4-4-6-4-6 0"/><path d="M12 8c1.4-4 6-4 6 0"/></svg>
+        </div>
+        <div class="label">Proventos Recebidos</div>
+        <div class="value num" id="kpi-proventos12m">R$ 4.259,75</div>
+        <div class="delta neu">Acumulado fev/25 – jul/26</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-icon" style="background:var(--emerald-dim); color:var(--emerald);">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/><path d="M6 18L18 6"/></svg>
+        </div>
+        <div class="label">Rentabilidade (12M)</div>
+        <div class="value num pos" id="kpi-rentTotal">+13,08%</div>
+        <div class="delta pos">↑ capital + proventos últimos 12 meses</div>
+      </div>
+    </div>
+
+    <div class="note-banner" id="fiisRentResumo" style="border-color: rgba(33,214,160,.25);"></div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <h3 style="display:flex; align-items:center; gap:9px;">
+            <span class="card-icon" style="background:var(--blue-dim); color:var(--blue);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+            </span>
+            Evolução do Patrimônio
+          </h3>
+          <div class="meta">dez/25 — jun/26 · por classe de ativo</div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chartEvolucao"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3 style="display:flex; align-items:center; gap:9px;">
+            <span class="card-icon" style="background:var(--emerald-dim); color:var(--emerald);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5A8.5 8.5 0 0 1 20.5 12H12z"/></svg>
+            </span>
+            Ativos na Carteira
+          </h3>
+          <div class="meta">posição de jun/26</div>
+        </div>
+        <div class="donut-row">
+          <div class="chart-wrap"><canvas id="chartAlocacao"></canvas></div>
+          <div class="legend-list" id="legendAlocacao"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <h3 style="display:flex; align-items:center; gap:9px;">
+            <span class="card-icon" style="background:var(--amber-dim); color:var(--amber);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9 20v-6h6v6"/></svg>
+            </span>
+            FIIs por Segmento
+          </h3>
+          <div class="meta">% da carteira de fundos</div>
+        </div>
+        <div class="donut-row">
+          <div class="chart-wrap"><canvas id="chartSegmento"></canvas></div>
+          <div class="legend-list" id="legendSegmento"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <h3 style="display:flex; align-items:center; gap:9px;">
+            <span class="card-icon" style="background:var(--violet-dim); color:var(--violet);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M9 4v16"/></svg>
+            </span>
+            Resumo por Classe
+          </h3>
+          <div class="meta">jun/26 vs. mês anterior</div>
+        </div>
+        <table>
+          <thead><tr id="theadResumoClasse">
+            <th class="sortable" data-key="nome">Classe <span class="arrow">↕</span></th>
+            <th class="r sortable" data-key="atual">Valor <span class="arrow">↕</span></th>
+            <th class="r sortable" data-key="varPct">Var. vs mai/26 <span class="arrow">↕</span></th>
+          </tr></thead>
+          <tbody id="tbodyResumoClasse"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== VIEW 1B: POSIÇÕES ===================== -->
+  <div class="view" id="view-posicoes">
+    <div class="topbar">
+      <div>
+        <h1>Posições</h1>
+        <div class="sub">Detalhamento de Ações, FIIs e Tesouro Direto</div>
+      </div>
+      <div class="updated"><span class="dot"></span> Posição de 30/06/2026</div>
+    </div>
+
+    <div class="section-title">
+      <span class="card-icon" style="background:var(--emerald-dim); color:var(--emerald);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+      </span>
+      Ações <span class="n">6 posições · R$ 731,33</span>
+      <button class="chip" id="toggleAcoes" style="margin-left:auto; font-size:11px; padding:5px 12px;">Ocultar</button>
+    </div>
+    <div class="card" id="cardAcoes">
+      <table>
+        <thead><tr id="theadAcoes">
+          <th class="sortable" data-key="ticker">Ativo <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="qtd">Qtd. <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="pm">Preço Médio <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="preco">Preço Atual <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="rent">Rentabilidade <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="valor">Saldo <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="pctCarteira">% Carteira <span class="arrow">↕</span></th>
+        </tr></thead>
+        <tbody id="tbodyAcoes"></tbody>
+      </table>
+      <div style="font-size:11px; color:var(--text-faint); margin-top:12px; line-height:1.5;">Preço médio calculado a partir do histórico completo dos dois extratos de movimentação (fev/2025–jul/2026) — inclui transferências entre corretoras, bonificação e ajuste de fração.</div>
+    </div>
+
+    <div class="section-title">
+      <span class="card-icon" style="background:var(--amber-dim); color:var(--amber);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 4l9 6.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9 20v-6h6v6"/></svg>
+      </span>
+      Fundos Imobiliários <span class="n" id="fiisContagem">15 posições · R$ 31.657,48</span>
+      <div class="sort-row" style="margin-left:auto;">
+        <label>Segmento</label>
+        <select class="sort-select" id="filtroSegmentoFiis">
+          <option value="all">Todos</option>
+          <option value="Papel">Papel (CRI)</option>
+          <option value="Tijolo">Tijolo</option>
+          <option value="Fiagro">Fiagro</option>
+          <option value="Hibrido">Híbrido</option>
+        </select>
+        <button class="chip" id="toggleFiis" style="font-size:11px; padding:5px 12px;">Ocultar</button>
+      </div>
+    </div>
+    <div class="card" id="cardFiis">
+      <table>
+        <thead><tr id="theadFiis">
+          <th class="sortable" data-key="ticker">Ativo <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="qtd">Qtd. <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="pm">Preço Médio <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="preco">Preço Atual <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="rent">Rentabilidade <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="seg">Segmento <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="valor">Saldo <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="pctCarteira">% Carteira <span class="arrow">↕</span></th>
+        </tr></thead>
+        <tbody id="tbodyFiis"></tbody>
+      </table>
+      <div style="font-size:11px; color:var(--text-faint); margin-top:12px; line-height:1.5;">Preço médio calculado a partir dos dois extratos de movimentação que você enviou (15/01/2025–24/07/2026) — cobre a compra desde o início. MXRF12 e RECR12 (direitos de subscrição) saíram da lista: eram posições temporárias que já expiraram/foram resolvidas, por isso o Investidor10 também mostra 15 fundos.</div>
+    </div>
+
+    <div class="section-title">
+      <span class="card-icon" style="background:var(--violet-dim); color:var(--violet);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><circle cx="12" cy="14.5" r="2.5"/></svg>
+      </span>
+      Tesouro Direto <span class="n">1 posição · R$ 7.865,12</span>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Ativo</th><th>Vencimento</th><th class="r">Valor Atualizado</th></tr></thead>
+        <tbody id="tbodyRF"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 2: MERCADO ===================== -->
+  <div class="view" id="view-mercado">
+    <div class="topbar">
+      <div>
+        <h1>Análise de Mercado</h1>
+        <div class="sub">Leitura dos relatórios gerenciais mais recentes dos seus fundos e ações</div>
+      </div>
+      <div class="updated"><span class="dot"></span> Pesquisa em 04/08/2026</div>
+    </div>
+
+    <div class="intro-banner">
+      <div class="ic">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#21d6a0" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4L12 17l-6.3 4.4 2.3-7.4-6-4.6h7.6z"/></svg>
+      </div>
+      <p><b>Como ler o placar abaixo:</b> cada ativo recebeu uma pontuação de 0 a 100 refletindo o quanto os fundamentos mais recentes (P/VP, dividend yield, vacância, alavancagem e sinalizações da gestão) favorecem uma <b>posição maior</b> hoje. Não é uma recomendação formal de compra ou venda — é uma leitura objetiva dos dados públicos mais recentes, pensada para apoiar sua própria decisão. <b>Claude não é um consultor de investimentos licenciado.</b></p>
+    </div>
+
+    <div class="filter-toolbar">
+      <div class="chip active" data-filter="all">Todos (17)</div>
+      <div class="chip" data-filter="Compra">Favoráveis a Compra</div>
+      <div class="chip" data-filter="Manter">Manter Posição</div>
+      <div class="chip" data-filter="Reduzir">Atenção / Reduzir</div>
+      <div class="sort-row">
+        <label>Ordenar por</label>
+        <select class="sort-select" id="sortSelect">
+          <option value="score">Pontuação (recomendação)</option>
+          <option value="dy">Maior DY anualizado (%)</option>
+          <option value="reais">Maior provento pago em R$ (jun/26)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="asset-grid" id="fiiGrid"></div>
+
+    <div class="section-title" style="margin-top:34px;">Ações da Carteira <span class="n">visão rápida — posições pequenas, sem relatório gerencial dedicado</span></div>
+    <div class="stock-strip" id="stockGrid"></div>
+
+    <div class="disclaimer">
+      <b>Fontes:</b> relatórios gerenciais e comunicados divulgados pelos administradores/gestores dos fundos (BTG Pactual, Kinea, Pátria, Riza, BRL Trust, Vórtx, entre outros), Investidor10, StatusInvest, Funds Explorer, Suno e BTG Content Research, consultados em 04/08/2026. Dados de cotação e P/VP variam diariamente e podem já estar desatualizados no momento em que você ler isto. <b>Este painel não constitui recomendação de investimento.</b> Rentabilidade passada não garante resultados futuros; antes de qualquer decisão, avalie seu perfil de risco e, se necessário, consulte um profissional certificado (CVM/ANBIMA).
+    </div>
+  </div>
+
+  <!-- ===================== VIEW 3: PROVENTOS ===================== -->
+  <div class="view" id="view-proventos">
+    <div class="topbar">
+      <div>
+        <h1>Proventos</h1>
+        <div class="sub">Evolução mensal de dividendos e rendimentos — fev/25 a jul/26</div>
+      </div>
+      <div class="updated"><span class="dot"></span> atualizado com os extratos de movimentação</div>
+    </div>
+
+    <div class="grid-2" style="grid-template-columns: .8fr 1.2fr; align-items:stretch;">
+      <div class="card">
+        <div class="card-head">
+          <h3 style="display:flex; align-items:center; gap:9px;">
+            <span class="card-icon" style="background:var(--emerald-dim); color:var(--emerald);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="10"/><rect x="10" y="6" width="4" height="14"/><rect x="17" y="3" width="4" height="17"/></svg>
+            </span>
+            Resumo
+          </h3>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Média Mensal (últimos 12 meses)</div>
+          <div class="stat-value lg num" id="provMedia">R$ 0,00</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Total últimos 12 meses</div>
+          <div class="stat-value num" id="provTotal12m">R$ 0,00</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label">Total desde o início (fev/25)</div>
+          <div class="stat-value num" id="provTotalGeral">R$ 0,00</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-label" style="justify-content:center;">Distribuição por ativo</div>
+          <div class="chart-wrap" style="height:170px; max-width:220px; margin:0 auto;"><canvas id="chartDistProventos"></canvas></div>
+          <div class="legend-list" id="legendDistProventos" style="max-width:260px; margin:12px auto 0;"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head" style="flex-wrap:wrap; row-gap:12px;">
+          <h3 style="display:flex; align-items:center; gap:9px;">
+            <span class="card-icon" style="background:var(--blue-dim); color:var(--blue);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+            </span>
+            Evolução de Proventos
+          </h3>
+          <div class="sort-row" style="margin-left:0; flex-wrap:wrap; row-gap:8px;">
+            <label>Período</label>
+            <select class="sort-select" id="provFiltroPeriodo">
+              <option value="atual">2026 (ano atual)</option>
+              <option value="12m" selected>Últimos 12 meses</option>
+              <option value="5a">Últimos 5 anos</option>
+            </select>
+            <label>Mostrar</label>
+            <select class="sort-select" id="provFiltroEvento">
+              <option value="recebidos" selected>Recebidos</option>
+              <option value="futuro">Futuros (estimativa)</option>
+              <option value="todos">Todos (recebidos e futuro)</option>
+            </select>
+            <label>Ativo</label>
+            <select class="sort-select" id="provFiltroTipo">
+              <option value="all">Todos</option>
+              <option value="Ação">Ações</option>
+              <option value="FII">FIIs</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="chartEvolucaoProventos"></canvas></div>
+        <div style="font-size:11px; color:var(--text-faint); margin-top:10px; line-height:1.5;" id="provNota"></div>
+      </div>
+    </div>
+
+    <div class="section-title">Histórico Mensal <span class="n">fev/25 — jul/26</span></div>
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead><tr id="theadHistorico"></tr></thead>
+        <tbody id="tbodyHistorico"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">
+      <span class="card-icon" style="background:var(--emerald-dim); color:var(--emerald);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      </span>
+      Meus Proventos <span class="n" id="detContagem">406 pagamentos</span>
+      <div style="margin-left:auto; text-align:right;">
+        <div style="font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.6px; font-weight:600;">Total no filtro</div>
+        <div class="num" id="detSomaDestaque" style="font-family:'Space Grotesk'; font-size:26px; font-weight:700; color:var(--emerald); letter-spacing:-.3px;">R$ 0,00</div>
+      </div>
+    </div>
+    <div class="filter-toolbar">
+      <label style="font-size:11.5px; color:var(--text-faint);">Ativo</label>
+      <select class="sort-select" id="detFiltroTipoAtivo">
+        <option value="all">Todos</option>
+        <option value="Ação">Ações</option>
+        <option value="FII">FIIs</option>
+      </select>
+      <label style="font-size:11.5px; color:var(--text-faint);">Segmento</label>
+      <select class="sort-select" id="detFiltroSegmento">
+        <option value="all">Todos</option>
+        <option value="Papel">Papel (CRI)</option>
+        <option value="Tijolo">Tijolo</option>
+        <option value="Fiagro">Fiagro</option>
+        <option value="Hibrido">Híbrido</option>
+      </select>
+      <label style="font-size:11.5px; color:var(--text-faint);">Período</label>
+      <select class="sort-select" id="detFiltroPeriodo">
+        <option value="all" selected>Tudo (fev/25–jul/26)</option>
+        <option value="ano">Ano atual (2026)</option>
+        <option value="mesAtual">Mês atual</option>
+        <option value="30d">Últimos 30 dias</option>
+        <option value="12m">Últimos 12 meses</option>
+      </select>
+    </div>
+    <div class="card" style="overflow-x:auto; max-height:560px; overflow-y:auto;">
+      <table>
+        <thead><tr id="theadProventosDet">
+          <th class="sortable" data-key="t">Ativo <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="tipoAtivo">Tipo <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="seg">Segmento <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="tipo">Provento <span class="arrow">↕</span></th>
+          <th class="sortable active" data-key="data">Data Pagamento <span class="arrow">↓</span></th>
+          <th class="r sortable" data-key="qtd">Quantidade <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="vcota">Valor/Cota <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="vtotal">Valor Recebido <span class="arrow">↕</span></th>
+        </tr></thead>
+        <tbody id="tbodyProventosDetalhado"></tbody>
+      </table>
+    </div>
+    <div style="font-size:11px; color:var(--text-faint); margin-top:10px; line-height:1.5;">Dados extraídos linha a linha dos dois extratos de movimentação (fev/2025–jul/2026). "Valor Recebido" é o valor líquido já creditado na sua conta (a B3 não detalha no extrato o valor bruto separado do imposto retido). Não temos a "data com" (data de corte para ter direito ao provento) — só a data em que o pagamento efetivamente caiu na conta.</div>
+  </div>
+
+  <!-- ===================== VIEW 4: LANÇAMENTOS ===================== -->
+  <div class="view" id="view-lancamentos">
+    <div class="topbar">
+      <div>
+        <h1>Lançamentos</h1>
+        <div class="sub">Registre compras e vendas manualmente para manter a carteira em dia</div>
+      </div>
+      <button class="chip" id="btnAbrirModalLancamento" style="display:flex; align-items:center; gap:7px; padding:10px 18px; font-weight:700; background:var(--text); color:#0a0d12; border-color:var(--text);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Adicionar Lançamento
+      </button>
+    </div>
+
+    <div class="note-banner">
+      <span>ℹ️</span>
+      <div><b>Como isso funciona:</b> esses lançamentos ficam salvos só no seu navegador (não vêm de extrato nenhum) — é um jeito rápido de anotar compras/vendas novas antes do próximo extrato oficial da B3. "Quantidade Total" mostra a posição acumulada daquele ativo considerando a ordem cronológica de todos os lançamentos que você registrou aqui.</div>
+    </div>
+
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead><tr id="theadLancamentos">
+          <th class="sortable" data-key="ativo">Ativo <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="tipoAtivo">Tipo de Investimento <span class="arrow">↕</span></th>
+          <th class="sortable" data-key="ordem">Ordem <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="qtd">Quantidade <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="preco">Preço Unitário <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="total">Total <span class="arrow">↕</span></th>
+          <th class="r sortable" data-key="qtdTotal">Qtd. Total <span class="arrow">↕</span></th>
+          <th class="sortable active" data-key="data">Data <span class="arrow">↓</span></th>
+          <th></th>
+        </tr></thead>
+        <tbody id="tbodyLancamentos"></tbody>
+      </table>
+      <div id="lancVazio" style="display:none; text-align:center; color:var(--text-faint); padding:36px; font-size:13px;">Nenhum lançamento ainda. Clique em "Adicionar Lançamento" pra começar.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== MODAL: ADICIONAR LANÇAMENTO ===================== -->
+<div class="modal-overlay" id="modalLancamento">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Adicionar Lançamento</h3>
+      <button class="modal-close" id="btnFecharModal">×</button>
+    </div>
+
+    <div class="toggle-row">
+      <button class="toggle-btn active compra" id="btnOrdemCompra" data-ordem="Compra">↓ Compra</button>
+      <button class="toggle-btn venda" id="btnOrdemVenda" data-ordem="Venda">↑ Venda</button>
+    </div>
+
+    <div id="lancErro" style="display:none; background:var(--red-dim); color:var(--red); font-size:12px; padding:10px 12px; border-radius:8px; margin-bottom:16px;"></div>
+
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Tipo de ativo</label>
+        <select id="lancTipoAtivo">
+          <option value="Ação">Ações</option>
+          <option value="FII">FIIs</option>
+          <option value="Tesouro">Tesouro Direto</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Ativo</label>
+        <select id="lancAtivo"><option value="">Selecione...</option></select>
+      </div>
+      <div class="form-field" id="lancAtivoCustomWrap" style="display:none; grid-column:1 / -1;">
+        <label>Nome / Ticker do ativo</label>
+        <input type="text" id="lancAtivoCustom" placeholder="ex: WEGE3 ou nome do fundo">
+      </div>
+      <div class="form-field">
+        <label>Data da transação</label>
+        <input type="date" id="lancData">
+      </div>
+      <div class="form-field">
+        <label>Quantidade</label>
+        <input type="number" id="lancQtd" min="0" step="any" placeholder="0">
+      </div>
+      <div class="form-field">
+        <label>Preço</label>
+        <div class="prefix-wrap"><span>R$</span><input type="number" id="lancPreco" min="0" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div class="form-field">
+        <label>Outros custos <span style="text-transform:none; font-weight:400;">(opcional)</span></label>
+        <div class="prefix-wrap"><span>R$</span><input type="number" id="lancCustos" min="0" step="0.01" placeholder="0,00"></div>
+      </div>
+    </div>
+
+    <div class="modal-total">
+      <span style="color:var(--text-dim); font-family:'Inter'; font-weight:600;">Valor total</span>
+      <span id="lancValorTotal">R$ 0,00</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" id="btnCancelarLancamento">Cancelar</button>
+      <button class="btn-primary" id="btnSalvarLancamento">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Adicionar Lançamento
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+Chart.defaults.color = '#8991a6';
+Chart.defaults.font.family = "Inter";
+Chart.defaults.borderColor = '#242a37';
+
+// ---------------- DATA ----------------
+const acoes = [
+  {ticker:"BBAS3", nome:"Banco do Brasil", qtd:15, preco:19.91, valor:298.65, precoMedio:23.985},
+  {ticker:"BBSE3", nome:"BB Seguridade", qtd:2, preco:39.17, valor:78.34, precoMedio:34.66},
+  {ticker:"EGIE3", nome:"Engie Brasil Energia", qtd:2, preco:34.83, valor:69.66, precoMedio:32.80},
+  {ticker:"PETR4", nome:"Petrobras PN", qtd:1, preco:37.80, valor:37.80, precoMedio:31.7911},
+  {ticker:"SAPR3", nome:"Sanepar", qtd:20, preco:8.45, valor:169.00, precoMedio:9.50},
+  {ticker:"VALE3", nome:"Vale", qtd:1, preco:77.88, valor:77.88, precoMedio:54.655},
+];
+
+const fiis = [
+  {ticker:"BTCI11", nome:"BTG Pactual Crédito Imobiliário", qtd:261, preco:9.01, valor:2351.61, seg:"Papel", precoMedio:9.0332},
+  {ticker:"GARE11", nome:"Guardian Real Estate", qtd:97, preco:8.17, valor:792.49, seg:"Tijolo", precoMedio:8.8051},
+  {ticker:"GGRC11", nome:"Zagros Renda Imobiliária", qtd:203, preco:9.59, valor:1946.77, seg:"Tijolo", precoMedio:9.7607},
+  {ticker:"HGLG11", nome:"Pátria Logística", qtd:12, preco:145.67, valor:1748.04, seg:"Tijolo", precoMedio:149.55},
+  {ticker:"KNCR11", nome:"Kinea Rendimentos Imobiliários", qtd:23, preco:107.89, valor:2481.47, seg:"Papel", precoMedio:103.2208},
+  {ticker:"KNRI11", nome:"Kinea Renda Imobiliária", qtd:15, preco:151.29, valor:2269.35, seg:"Hibrido", precoMedio:144.0438},
+  {ticker:"MXRF11", nome:"Maxi Renda", qtd:171, preco:9.81, valor:1677.51, seg:"Papel", precoMedio:9.4072},
+  {ticker:"RBRR11", nome:"RBR Rendimento High Grade", qtd:18, preco:78.23, valor:1408.14, seg:"Papel", precoMedio:86.7613},
+  {ticker:"RECR11", nome:"REC Recebíveis Imobiliários", qtd:37, preco:81.67, valor:3021.79, seg:"Papel", precoMedio:84.0415},
+  {ticker:"RZAK11", nome:"Riza Akin", qtd:37, preco:80.34, valor:2972.58, seg:"Papel", precoMedio:80.9768},
+  {ticker:"RZTR11", nome:"Riza Terrax", qtd:31, preco:89.69, valor:2780.39, seg:"Fiagro", precoMedio:91.8458},
+  {ticker:"TRXF11", nome:"TRX Real Estate", qtd:34, preco:81.08, valor:2756.72, seg:"Tijolo", precoMedio:94.6759},
+  {ticker:"VGIA11", nome:"Valora CRA Fiagro", qtd:393, preco:8.32, valor:3269.76, seg:"Fiagro", precoMedio:8.9774},
+  {ticker:"XPLG11", nome:"XP Log", qtd:11, preco:93.79, valor:1031.69, seg:"Tijolo", precoMedio:97.2011},
+  {ticker:"XPML11", nome:"XP Malls", qtd:11, preco:104.47, valor:1149.17, seg:"Tijolo", precoMedio:101.9827},
+];
+
+const rendaFixa = [
+  {nome:"Tesouro IPCA+ 2040", venc:"15/08/2040", valor:7865.12},
+];
+// CDBs (Renda Fixa privada) removidos temporariamente da dash a pedido — voltam quando o valor de resgate/curva estiver reconciliado.
+
+// Evolução mensal — extraída dos relatórios consolidados que você enviou (dez/25 a jun/26)
+const patrimonioEvolucao = [
+  {mes:"dez/25", acoes:237.47, fiis:29084.60, tesouro:2045.13},
+  {mes:"jan/26", acoes:248.18, fiis:29384.50, tesouro:2030.63},
+  {mes:"fev/26", acoes:262.55, fiis:29454.71, tesouro:3156.17},
+  {mes:"mar/26", acoes:820.03, fiis:28777.98, tesouro:5043.34},
+  {mes:"abr/26", acoes:788.39, fiis:28875.07, tesouro:6169.17},
+  {mes:"mai/26", acoes:736.32, fiis:28590.42, tesouro:6081.55},
+  {mes:"jun/26", acoes:731.33, fiis:28049.50, tesouro:5865.12},
+];
+// Renda Fixa (CDB) removida temporariamente da evolução a pedido — os valores de CDB por mês seguem nos dados brutos se precisar reativar.
+patrimonioEvolucao.forEach(m=> m.total = m.acoes+m.fiis+m.tesouro);
+
+// Proventos mês a mês por ativo — extraído dos dois extratos de movimentação (fev/25 a jul/26, dado real)
+const proventosPorMes = {
+ "2025-02": {"XPML11":1.84},
+ "2025-03": {"BBAS3":2.82,"BTCI11":2.97,"HGLG11":2.2,"KNCR11":4.28,"KNRI11":2.0,"MDIA3":0.06,"MXRF11":2.34,"RBRR11":1.9,"RZTR11":1.05,"TRXF11":0.93,"VALE3":2.14,"XPLG11":3.28,"XPML11":3.68},
+ "2025-04": {"BRBI11":0.18,"BTCI11":3.47,"HGLG11":3.3,"ITUB4":0.01,"KNCR11":5.2,"KNRI11":3.0,"MDIA3":0.31,"MXRF11":2.34,"RBRR11":1.9,"RZTR11":2.1,"TIMS3":0.28,"TRXF11":0.93,"XPLG11":3.28,"XPML11":3.68},
+ "2025-05": {"BBDC3":0.01,"BRBI11":0.3,"BTCI11":3.55,"GARE11":0.16,"GGRC11":0.1,"GRND3":0.3,"HGLG11":3.3,"ITUB4":0.01,"KLBN3":0.04,"KNCR11":6.96,"KNRI11":4.0,"MDIA3":0.03,"MXRF11":3.1,"PETR4":0.36,"RBRR11":2.0,"RZTR11":2.1,"TAEE3":0.18,"TRXF11":0.93,"XPLG11":3.28,"XPML11":3.68},
+ "2025-06": {"BBAS3":1.81,"BBDC3":0.01,"BTCI11":8.13,"CMIG3":0.32,"CSMG3":0.03,"GARE11":2.65,"GGRC11":2.1,"HGLG11":3.3,"ITUB4":0.01,"KNCR11":14.4,"KNRI11":4.0,"MDIA3":0.03,"MXRF11":7.3,"PETR4":0.37,"RBRR11":1.8,"RZTR11":5.25,"TRXF11":1.86,"XPLG11":4.1,"XPML11":4.6},
+ "2025-07": {"BBDC3":0.01,"BTCI11":20.2,"GARE11":4.06,"GGRC11":7.55,"HGLG11":3.3,"ITUB4":0.01,"KNCR11":14.4,"KNRI11":4.0,"MXRF11":8.9,"RBRR11":13.0,"RECR11":20.28,"RZAK11":23.0,"RZTR11":10.5,"TIMS3":0.39,"TRXF11":9.06,"VGIA11":25.0,"XPLG11":4.1,"XPML11":10.12},
+ "2025-08": {"BBDC3":0.09,"BBSE3":67.97,"BRBI11":6.48,"BTCI11":21.2,"CSMG3":0.37,"CXSE3":14.88,"FIQE3":2.35,"GARE11":8.21,"GGRC11":7.2,"HGLG11":6.6,"ITSA3":5.22,"ITUB4":0.33,"KLBN3":3.51,"KNCR11":32.4,"KNRI11":8.0,"MXRF11":17.6,"PETR4":0.39,"RBRR11":13.3,"RECR11":31.38,"RZAK11":41.4,"RZTR11":30.0,"TAEE3":0.16,"TRXF11":21.39,"VGIA11":43.16,"WIZC3":0.25,"XPLG11":9.02,"XPML11":10.12},
+ "2025-09": {"BBDC3":0.32,"BTCI11":21.2,"GARE11":8.21,"GGRC11":10.3,"GRND3":6.29,"HGLG11":6.6,"KEPL3":1.94,"KNCR11":32.4,"KNRI11":10.0,"MXRF11":17.6,"PETR4":0.42,"RBRR11":13.6,"RECR11":26.57,"RZAK11":42.55,"RZTR11":31.0,"TRXF11":22.32,"VALE3":9.66,"VGIA11":44.46,"XPLG11":9.02,"XPML11":10.12},
+ "2025-10": {"BBDC3":0.49,"BTCI11":21.2,"GARE11":8.21,"GGRC11":10.3,"HGLG11":6.6,"ITSA3":0.66,"KNCR11":32.4,"KNRI11":10.0,"MXRF11":17.6,"RBRR11":12.8,"RECR11":25.23,"RZAK11":40.7,"RZTR11":31.0,"TIMS3":0.28,"TRXF11":22.32,"VGIA11":47.88,"XPLG11":9.02,"XPML11":10.12},
+ "2025-11": {"BBDC3":0.32,"BRBI11":18.36,"BTCI11":20.13,"CSMG3":2.28,"CXSE3":18.56,"GARE11":8.21,"GGRC11":10.3,"HGLG11":6.6,"KLBN3":3.65,"KNCR11":31.92,"KNRI11":10.0,"MXRF11":17.6,"PETR4":4.0,"RBRR11":12.6,"RECR11":29.73,"RZAK11":40.7,"RZTR11":31.0,"TAEE3":7.06,"TRXF11":22.32,"VGIA11":51.3,"XPLG11":9.02,"XPML11":10.12},
+ "2025-12": {"BBAS3":5.89,"BBDC3":0.32,"BTCI11":20.35,"CMIG3":0.32,"EGIE3":6.17,"GARE11":8.21,"GGRC11":10.3,"GRND3":3.34,"HGLG11":6.6,"KEPL3":2.74,"KNCR11":26.64,"KNRI11":10.0,"MXRF11":17.6,"PETR4":4.42,"RBRR11":14.4,"RECR11":30.31,"RZAK11":40.7,"RZTR11":31.0,"TRXF11":22.32,"VGIA11":47.88,"VIVT3":0.11,"WEGE3":3.19,"XPLG11":9.02,"XPML11":10.12},
+ "2026-01": {"BBDC3":1.7,"BTCI11":20.07,"GARE11":8.05,"GGRC11":10.2,"HGLG11":6.6,"ITSA3":0.66,"KNCR11":29.9,"KNRI11":11.25,"MXRF11":17.1,"RBRR11":14.4,"RECR11":29.97,"RZAK11":40.7,"RZTR11":31.0,"TAEE3":7.88,"TRXF11":24.0,"VALE3":1.24,"VGIA11":47.88,"XPLG11":9.02,"XPML11":10.12},
+ "2026-02": {"BTCI11":19.25,"GARE11":8.05,"GGRC11":10.2,"HGLG11":6.6,"KNCR11":27.6,"KNRI11":7.92,"MXRF11":17.1,"PETR4":0.4,"RBRR11":14.4,"RECR11":30.62,"RZAK11":40.7,"RZTR11":31.0,"TRXF11":22.32,"VGIA11":49.59,"XPLG11":9.02,"XPML11":10.12},
+ "2026-03": {"BBAS3":1.21,"BTCI11":19.25,"GARE11":8.05,"GGRC11":10.2,"HGLG11":6.6,"KNCR11":23.0,"KNRI11":9.9,"MXRF11":17.1,"PETR4":0.44,"RBRR11":12.6,"RECR11":26.83,"RZAK11":38.85,"RZTR11":31.0,"TRXF11":22.32,"VALE3":2.09,"VGIA11":49.59,"XPLG11":9.02,"XPML11":10.12},
+ "2026-04": {"BBDC3":5.05,"BTCI11":19.25,"GARE11":8.05,"GGRC11":10.2,"HGLG11":6.6,"KNCR11":26.45,"KNRI11":9.9,"MXRF11":16.24,"RBRR11":12.6,"RECR11":38.23,"RZAK11":40.7,"RZTR11":31.0,"TIMS3":0.17,"TRXF11":22.32,"VGIA11":47.88,"VIVT3":0.12,"XPLG11":9.02,"XPML11":10.12},
+ "2026-05": {"BTCI11":19.66,"EGIE3":1.03,"GARE11":8.05,"GGRC11":10.2,"HGLG11":6.6,"KNCR11":25.3,"KNRI11":9.9,"MXRF11":17.1,"PETR4":0.27,"RBRR11":16.2,"RECR11":38.94,"RZAK11":40.7,"RZTR11":31.0,"TRXF11":22.32,"VGIA11":44.46,"XPLG11":9.02,"XPML11":10.12},
+ "2026-06": {"BBAS3":1.75,"BTCI11":21.73,"CMIG3":0.61,"GARE11":8.05,"GGRC11":10.2,"HGLG11":6.6,"KNCR11":25.3,"KNRI11":9.9,"MXRF11":17.1,"PETR4":0.28,"RBRR11":17.1,"RECR11":41.36,"RZAK11":38.85,"RZTR11":31.0,"SAPR3":1.33,"TRXF11":22.32,"VGIA11":44.46,"XPLG11":9.02,"XPML11":10.12},
+ "2026-07": {"BTCI11":21.73,"GARE11":8.05,"GGRC11":10.2,"HGLG11":6.6,"KNCR11":25.3,"KNRI11":12.42,"MXRF11":17.1,"RBRR11":17.64,"RECR11":39.8,"RZAK11":38.85,"RZTR11":27.9,"TRXF11":36.0,"VGIA11":44.46,"XPLG11":9.02,"XPML11":10.12},
+};
+const mesesLabel = { "01":"jan","02":"fev","03":"mar","04":"abr","05":"mai","06":"jun","07":"jul","08":"ago","09":"set","10":"out","11":"nov","12":"dez" };
+function fmtMes(m){ const [a,mm]=m.split('-'); return mesesLabel[mm]+'/'+a.slice(2); }
+function isFii(t){ return /1[12]L?$/.test(t); }
+function tipoDe(t){ return isFii(t) ? 'FII' : 'Ação'; }
+function totalMes(mes, tipo){
+  const obj = proventosPorMes[mes];
+  if(!obj) return 0;
+  return Object.entries(obj).reduce((s,[t,v])=> (tipo==='all'||tipoDe(t)===tipo) ? s+v : s, 0);
+}
+const todosMeses = Object.keys(proventosPorMes).sort(); // fev/25 ... jul/26
+
+// Estimativa "futuro" — próximo mês (ago/26), com base no último provento pago por ativo (jul/26), mantendo tipo de ativo do filtro
+const proventosFuturo = { "2026-08": proventosPorMes["2026-07"] };
+const proventosDetalhado = [{"t": "XPML11", "tipo": "Rendimento", "data": "2025-02-25", "qtd": 2.0, "vcota": 0.92, "vtotal": 1.84}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-03-11", "qtd": 1.0, "vcota": 1.05, "vtotal": 1.05}, {"t": "VALE3", "tipo": "Dividendo", "data": "2025-03-14", "qtd": 1.0, "vcota": 2.142, "vtotal": 2.14}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-03-17", "qtd": 4.0, "vcota": 1.07, "vtotal": 4.28}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-03-18", "qtd": 26.0, "vcota": 0.09, "vtotal": 2.34}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-03-18", "qtd": 4.0, "vcota": 0.82, "vtotal": 3.28}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-03-18", "qtd": 1.0, "vcota": 0.93, "vtotal": 0.93}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-03-18", "qtd": 2.0, "vcota": 1.0, "vtotal": 2.0}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-03-18", "qtd": 2.0, "vcota": 1.1, "vtotal": 2.2}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-03-18", "qtd": 32.0, "vcota": 0.093, "vtotal": 2.97}, {"t": "BBAS3", "tipo": "Rendimento", "data": "2025-03-20", "qtd": 5.0, "vcota": 0.009, "vtotal": 0.04}, {"t": "BBAS3", "tipo": "Rendimento", "data": "2025-03-20", "qtd": 5.0, "vcota": 0.004, "vtotal": 0.01}, {"t": "BBAS3", "tipo": "Dividendo", "data": "2025-03-20", "qtd": 5.0, "vcota": 0.136, "vtotal": 0.68}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-03-20", "qtd": 5.0, "vcota": 0.343, "vtotal": 1.46}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-03-20", "qtd": 2.0, "vcota": 0.95, "vtotal": 1.9}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-03-21", "qtd": 5.0, "vcota": 0.149, "vtotal": 0.63}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-03-25", "qtd": 4.0, "vcota": 0.92, "vtotal": 3.68}, {"t": "MDIA3", "tipo": "Dividendo", "data": "2025-03-31", "qtd": 1.0, "vcota": 0.06, "vtotal": 0.06}, {"t": "MDIA3", "tipo": "Dividendo", "data": "2025-04-01", "qtd": 1.0, "vcota": 0.28, "vtotal": 0.28}, {"t": "ITUB4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-04-01", "qtd": 1.0, "vcota": 0.018, "vtotal": 0.01}, {"t": "BRBI11", "tipo": "Dividendo", "data": "2025-04-04", "qtd": 1.0, "vcota": 0.18, "vtotal": 0.18}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-04-07", "qtd": 2.0, "vcota": 1.05, "vtotal": 2.1}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-04-11", "qtd": 5.0, "vcota": 1.04, "vtotal": 5.2}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-04-14", "qtd": 32.0, "vcota": 0.094, "vtotal": 3.0}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-04-14", "qtd": 3.0, "vcota": 1.1, "vtotal": 3.3}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-04-14", "qtd": 5.0, "vcota": 0.094, "vtotal": 0.47}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-04-14", "qtd": 26.0, "vcota": 0.09, "vtotal": 2.34}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-04-14", "qtd": 1.0, "vcota": 0.93, "vtotal": 0.93}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-04-14", "qtd": 4.0, "vcota": 0.82, "vtotal": 3.28}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-04-14", "qtd": 3.0, "vcota": 1.0, "vtotal": 3.0}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-04-16", "qtd": 2.0, "vcota": 0.95, "vtotal": 1.9}, {"t": "TIMS3", "tipo": "Dividendo", "data": "2025-04-22", "qtd": 1.0, "vcota": 0.282, "vtotal": 0.28}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-04-25", "qtd": 4.0, "vcota": 0.92, "vtotal": 3.68}, {"t": "MDIA3", "tipo": "Dividendo", "data": "2025-04-30", "qtd": 1.0, "vcota": 0.03, "vtotal": 0.03}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-05-02", "qtd": 1.0, "vcota": 0.017, "vtotal": 0.01}, {"t": "ITUB4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-05-02", "qtd": 1.0, "vcota": 0.018, "vtotal": 0.01}, {"t": "GRND3", "tipo": "Dividendo", "data": "2025-05-07", "qtd": 1.0, "vcota": 0.134, "vtotal": 0.13}, {"t": "GRND3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-05-07", "qtd": 1.0, "vcota": 0.122, "vtotal": 0.11}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-05-08", "qtd": 2.0, "vcota": 1.05, "vtotal": 2.1}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-05-08", "qtd": 2.0, "vcota": 0.083, "vtotal": 0.16}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-05-09", "qtd": 1.0, "vcota": 0.1, "vtotal": 0.1}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-05-14", "qtd": 1.0, "vcota": 1.16, "vtotal": 1.16}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-05-14", "qtd": 5.0, "vcota": 1.16, "vtotal": 5.8}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 32.0, "vcota": 0.096, "vtotal": 3.07}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 5.0, "vcota": 0.096, "vtotal": 0.48}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 3.0, "vcota": 1.1, "vtotal": 3.3}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 3.0, "vcota": 1.0, "vtotal": 3.0}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 1.0, "vcota": 1.0, "vtotal": 1.0}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 1.0, "vcota": 0.93, "vtotal": 0.93}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 4.0, "vcota": 0.82, "vtotal": 3.28}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-05-15", "qtd": 26.0, "vcota": 0.1, "vtotal": 2.6}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-05-19", "qtd": 2.0, "vcota": 1.0, "vtotal": 2.0}, {"t": "PETR4", "tipo": "Rendimento", "data": "2025-05-20", "qtd": 1.0, "vcota": 0.017, "vtotal": 0.01}, {"t": "PETR4", "tipo": "Dividendo", "data": "2025-05-20", "qtd": 1.0, "vcota": 0.355, "vtotal": 0.35}, {"t": "KLBN3", "tipo": "Dividendo", "data": "2025-05-22", "qtd": 1.0, "vcota": 0.046, "vtotal": 0.04}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-05-23", "qtd": 4.0, "vcota": 0.92, "vtotal": 3.68}, {"t": "BRBI11", "tipo": "Dividendo", "data": "2025-05-23", "qtd": 1.0, "vcota": 0.3, "vtotal": 0.3}, {"t": "TAEE3", "tipo": "Dividendo", "data": "2025-05-28", "qtd": 1.0, "vcota": 0.184, "vtotal": 0.18}, {"t": "GRND3", "tipo": "Dividendo", "data": "2025-05-29", "qtd": 1.0, "vcota": 0.064, "vtotal": 0.06}, {"t": "MDIA3", "tipo": "Dividendo", "data": "2025-05-30", "qtd": 1.0, "vcota": 0.03, "vtotal": 0.03}, {"t": "ITUB4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-06-02", "qtd": 1.0, "vcota": 0.018, "vtotal": 0.01}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-06-02", "qtd": 1.0, "vcota": 0.017, "vtotal": 0.01}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-06-06", "qtd": 30.0, "vcota": 0.083, "vtotal": 2.49}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-06-06", "qtd": 2.0, "vcota": 0.083, "vtotal": 0.16}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-06-06", "qtd": 5.0, "vcota": 1.05, "vtotal": 5.25}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-06-09", "qtd": 1.0, "vcota": 0.1, "vtotal": 0.1}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-06-09", "qtd": 20.0, "vcota": 0.1, "vtotal": 2.0}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-06-12", "qtd": 1.0, "vcota": 1.2, "vtotal": 1.2}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-06-12", "qtd": 11.0, "vcota": 1.2, "vtotal": 13.2}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-06-12", "qtd": 5.0, "vcota": 0.09, "vtotal": 0.39}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-06-12", "qtd": 5.0, "vcota": 0.334, "vtotal": 1.42}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 78.0, "vcota": 0.098, "vtotal": 7.64}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 3.0, "vcota": 1.1, "vtotal": 3.3}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 3.0, "vcota": 1.0, "vtotal": 3.0}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 5.0, "vcota": 0.098, "vtotal": 0.49}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 68.0, "vcota": 0.1, "vtotal": 6.8}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 2.0, "vcota": 0.93, "vtotal": 1.86}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 5.0, "vcota": 0.82, "vtotal": 4.1}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-06-13", "qtd": 1.0, "vcota": 1.0, "vtotal": 1.0}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-06-17", "qtd": 2.0, "vcota": 0.9, "vtotal": 1.8}, {"t": "PETR4", "tipo": "Dividendo", "data": "2025-06-20", "qtd": 1.0, "vcota": 0.355, "vtotal": 0.35}, {"t": "PETR4", "tipo": "Rendimento", "data": "2025-06-20", "qtd": 1.0, "vcota": 0.022, "vtotal": 0.02}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-06-25", "qtd": 5.0, "vcota": 0.92, "vtotal": 4.6}, {"t": "CMIG3", "tipo": "Dividendo", "data": "2025-06-30", "qtd": 1.0, "vcota": 0.329, "vtotal": 0.32}, {"t": "MDIA3", "tipo": "Dividendo", "data": "2025-06-30", "qtd": 1.0, "vcota": 0.03, "vtotal": 0.03}, {"t": "CSMG3", "tipo": "Dividendo", "data": "2025-06-30", "qtd": 1.0, "vcota": 0.035, "vtotal": 0.03}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-07-01", "qtd": 1.0, "vcota": 0.017, "vtotal": 0.01}, {"t": "ITUB4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-07-01", "qtd": 1.0, "vcota": 0.018, "vtotal": 0.01}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-07-07", "qtd": 10.0, "vcota": 1.05, "vtotal": 10.5}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-07-07", "qtd": 2.0, "vcota": 0.083, "vtotal": 0.16}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-07-07", "qtd": 47.0, "vcota": 0.083, "vtotal": 3.9}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-07-08", "qtd": 71.0, "vcota": 0.105, "vtotal": 7.45}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-07-08", "qtd": 1.0, "vcota": 0.105, "vtotal": 0.1}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-07-11", "qtd": 1.0, "vcota": 1.2, "vtotal": 1.2}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-07-11", "qtd": 11.0, "vcota": 1.2, "vtotal": 13.2}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 3.0, "vcota": 1.1, "vtotal": 3.3}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 197.0, "vcota": 0.1, "vtotal": 19.7}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 1.0, "vcota": 1.0, "vtotal": 1.0}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 3.0, "vcota": 1.0, "vtotal": 3.0}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 5.0, "vcota": 0.82, "vtotal": 4.1}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "RECR11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 20.0, "vcota": 1.014, "vtotal": 20.28}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 6.0, "vcota": 1.51, "vtotal": 9.06}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-07-14", "qtd": 84.0, "vcota": 0.1, "vtotal": 8.4}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-07-16", "qtd": 13.0, "vcota": 1.0, "vtotal": 13.0}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2025-07-17", "qtd": 200.0, "vcota": 0.125, "vtotal": 25.0}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2025-07-21", "qtd": 20.0, "vcota": 1.15, "vtotal": 23.0}, {"t": "TIMS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-07-23", "qtd": 1.0, "vcota": 0.124, "vtotal": 0.11}, {"t": "TIMS3", "tipo": "Dividendo", "data": "2025-07-23", "qtd": 1.0, "vcota": 0.282, "vtotal": 0.28}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-07-25", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-01", "qtd": 6.0, "vcota": 0.017, "vtotal": 0.09}, {"t": "ITUB4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-01", "qtd": 1.0, "vcota": 0.018, "vtotal": 0.01}, {"t": "ITUB4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-01", "qtd": 2.0, "vcota": 0.018, "vtotal": 0.03}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-08-07", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-08-07", "qtd": 30.0, "vcota": 1.0, "vtotal": 30.0}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-08-07", "qtd": 2.0, "vcota": 0.083, "vtotal": 0.16}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-08-08", "qtd": 1.0, "vcota": 0.1, "vtotal": 0.1}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-08-08", "qtd": 71.0, "vcota": 0.1, "vtotal": 7.1}, {"t": "CSMG3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-11", "qtd": 1.0, "vcota": 0.433, "vtotal": 0.37}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-08-13", "qtd": 23.0, "vcota": 1.35, "vtotal": 31.05}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-08-13", "qtd": 1.0, "vcota": 1.35, "vtotal": 1.35}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 207.0, "vcota": 0.1, "vtotal": 20.7}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 1.0, "vcota": 1.0, "vtotal": 1.0}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "RECR11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 33.0, "vcota": 0.951, "vtotal": 31.38}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 23.0, "vcota": 0.93, "vtotal": 21.39}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-08-14", "qtd": 7.0, "vcota": 1.0, "vtotal": 7.0}, {"t": "CXSE3", "tipo": "Dividendo", "data": "2025-08-15", "qtd": 48.0, "vcota": 0.31, "vtotal": 14.88}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-08-18", "qtd": 14.0, "vcota": 0.95, "vtotal": 13.3}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2025-08-19", "qtd": 332.0, "vcota": 0.13, "vtotal": 43.16}, {"t": "KLBN3", "tipo": "Dividendo", "data": "2025-08-19", "qtd": 70.0, "vcota": 0.05, "vtotal": 3.51}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-20", "qtd": 1.0, "vcota": 0.455, "vtotal": 0.39}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2025-08-21", "qtd": 36.0, "vcota": 1.15, "vtotal": 41.4}, {"t": "BRBI11", "tipo": "Dividendo", "data": "2025-08-21", "qtd": 18.0, "vcota": 0.36, "vtotal": 6.48}, {"t": "FIQE3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-22", "qtd": 15.0, "vcota": 0.085, "vtotal": 1.08}, {"t": "FIQE3", "tipo": "Dividendo", "data": "2025-08-22", "qtd": 15.0, "vcota": 0.085, "vtotal": 1.27}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-08-25", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "BBSE3", "tipo": "Dividendo", "data": "2025-08-26", "qtd": 35.0, "vcota": 1.942, "vtotal": 67.97}, {"t": "TAEE3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-27", "qtd": 1.0, "vcota": 0.182, "vtotal": 0.16}, {"t": "WIZC3", "tipo": "Dividendo", "data": "2025-08-29", "qtd": 1.0, "vcota": 0.25, "vtotal": 0.25}, {"t": "ITUB4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-29", "qtd": 1.0, "vcota": 0.334, "vtotal": 0.29}, {"t": "ITSA3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-08-29", "qtd": 33.0, "vcota": 0.186, "vtotal": 5.22}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-09-01", "qtd": 22.0, "vcota": 0.017, "vtotal": 0.32}, {"t": "VALE3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-09-03", "qtd": 5.0, "vcota": 1.895, "vtotal": 8.05}, {"t": "VALE3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-09-03", "qtd": 1.0, "vcota": 1.895, "vtotal": 1.61}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-09-05", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-09-05", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-09-05", "qtd": 2.0, "vcota": 0.083, "vtotal": 0.16}, {"t": "KEPL3", "tipo": "Dividendo", "data": "2025-09-08", "qtd": 14.0, "vcota": 0.108, "vtotal": 1.51}, {"t": "KEPL3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-09-08", "qtd": 14.0, "vcota": 0.036, "vtotal": 0.43}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-09-08", "qtd": 1.0, "vcota": 0.1, "vtotal": 0.1}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-09-08", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "GRND3", "tipo": "Dividendo", "data": "2025-09-10", "qtd": 55.0, "vcota": 0.115, "vtotal": 6.29}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-09-11", "qtd": 1.0, "vcota": 1.35, "vtotal": 1.35}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-09-11", "qtd": 23.0, "vcota": 1.35, "vtotal": 31.05}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 207.0, "vcota": 0.1, "vtotal": 20.7}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "RECR11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 34.0, "vcota": 0.782, "vtotal": 26.57}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 1.0, "vcota": 1.0, "vtotal": 1.0}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-09-12", "qtd": 9.0, "vcota": 1.0, "vtotal": 9.0}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-09-16", "qtd": 16.0, "vcota": 0.85, "vtotal": 13.6}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2025-09-17", "qtd": 342.0, "vcota": 0.13, "vtotal": 44.46}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2025-09-19", "qtd": 37.0, "vcota": 1.15, "vtotal": 42.55}, {"t": "PETR4", "tipo": "Dividendo", "data": "2025-09-22", "qtd": 1.0, "vcota": 0.308, "vtotal": 0.3}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-09-22", "qtd": 1.0, "vcota": 0.146, "vtotal": 0.12}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-09-25", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-10-01", "qtd": 22.0, "vcota": 0.017, "vtotal": 0.32}, {"t": "ITSA3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-10-01", "qtd": 33.0, "vcota": 0.024, "vtotal": 0.66}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-10-07", "qtd": 2.0, "vcota": 0.083, "vtotal": 0.16}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-10-07", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-10-07", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-10-08", "qtd": 1.0, "vcota": 0.1, "vtotal": 0.1}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-10-08", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-10-13", "qtd": 1.0, "vcota": 1.35, "vtotal": 1.35}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-10-13", "qtd": 23.0, "vcota": 1.35, "vtotal": 31.05}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 9.0, "vcota": 1.0, "vtotal": 9.0}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 207.0, "vcota": 0.1, "vtotal": 20.7}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 1.0, "vcota": 1.0, "vtotal": 1.0}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "RECR11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 34.0, "vcota": 0.742, "vtotal": 25.23}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-10-14", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-10-16", "qtd": 16.0, "vcota": 0.8, "vtotal": 12.8}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2025-10-17", "qtd": 342.0, "vcota": 0.14, "vtotal": 47.88}, {"t": "TIMS3", "tipo": "Dividendo", "data": "2025-10-21", "qtd": 1.0, "vcota": 0.283, "vtotal": 0.28}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2025-10-21", "qtd": 37.0, "vcota": 1.1, "vtotal": 40.7}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-10-24", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-10-31", "qtd": 1.0, "vcota": 0.207, "vtotal": 0.17}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-11-03", "qtd": 22.0, "vcota": 0.017, "vtotal": 0.32}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-11-07", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-11-07", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-11-07", "qtd": 2.0, "vcota": 0.083, "vtotal": 0.16}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-11-10", "qtd": 1.0, "vcota": 0.1, "vtotal": 0.1}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-11-10", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "CSMG3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-11-10", "qtd": 6.0, "vcota": 0.448, "vtotal": 2.28}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-11-13", "qtd": 1.0, "vcota": 1.33, "vtotal": 1.33}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-11-13", "qtd": 23.0, "vcota": 1.33, "vtotal": 30.59}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 9.0, "vcota": 1.0, "vtotal": 9.0}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 207.0, "vcota": 0.095, "vtotal": 19.66}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 1.0, "vcota": 1.0, "vtotal": 1.0}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 5.0, "vcota": 0.095, "vtotal": 0.47}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "RECR11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 37.0, "vcota": 0.804, "vtotal": 29.73}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-11-14", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "CXSE3", "tipo": "Dividendo", "data": "2025-11-17", "qtd": 58.0, "vcota": 0.32, "vtotal": 18.56}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-11-18", "qtd": 18.0, "vcota": 0.7, "vtotal": 12.6}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2025-11-19", "qtd": 342.0, "vcota": 0.15, "vtotal": 51.3}, {"t": "KLBN3", "tipo": "Dividendo", "data": "2025-11-19", "qtd": 70.0, "vcota": 0.052, "vtotal": 3.65}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-11-21", "qtd": 13.0, "vcota": 0.336, "vtotal": 3.71}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-11-21", "qtd": 1.0, "vcota": 0.336, "vtotal": 0.29}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2025-11-24", "qtd": 37.0, "vcota": 1.1, "vtotal": 40.7}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-11-25", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "BRBI11", "tipo": "Dividendo", "data": "2025-11-26", "qtd": 18.0, "vcota": 1.02, "vtotal": 18.36}, {"t": "TAEE3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-11-27", "qtd": 27.0, "vcota": 0.213, "vtotal": 4.89}, {"t": "TAEE3", "tipo": "Dividendo", "data": "2025-11-27", "qtd": 1.0, "vcota": 0.107, "vtotal": 0.1}, {"t": "TAEE3", "tipo": "Dividendo", "data": "2025-11-27", "qtd": 27.0, "vcota": 0.077, "vtotal": 2.07}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-01", "qtd": 22.0, "vcota": 0.017, "vtotal": 0.32}, {"t": "VIVT3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-02", "qtd": 1.0, "vcota": 0.123, "vtotal": 0.11}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2025-12-05", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-12-05", "qtd": 2.0, "vcota": 0.083, "vtotal": 0.16}, {"t": "GARE11", "tipo": "Rendimento", "data": "2025-12-05", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-12-08", "qtd": 1.0, "vcota": 0.1, "vtotal": 0.1}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2025-12-08", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "GRND3", "tipo": "Dividendo", "data": "2025-12-10", "qtd": 55.0, "vcota": 0.004, "vtotal": 0.23}, {"t": "GRND3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-10", "qtd": 55.0, "vcota": 0.067, "vtotal": 3.11}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-12-11", "qtd": 1.0, "vcota": 1.11, "vtotal": 1.11}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2025-12-11", "qtd": 23.0, "vcota": 1.11, "vtotal": 25.53}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-11", "qtd": 54.0, "vcota": 0.072, "vtotal": 3.3}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-11", "qtd": 5.0, "vcota": 0.072, "vtotal": 0.3}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 9.0, "vcota": 1.0, "vtotal": 9.0}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-12", "qtd": 5.0, "vcota": 0.046, "vtotal": 0.19}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-12", "qtd": 54.0, "vcota": 0.046, "vtotal": 2.1}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 207.0, "vcota": 0.096, "vtotal": 19.87}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 5.0, "vcota": 0.096, "vtotal": 0.48}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 1.0, "vcota": 1.0, "vtotal": 1.0}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 5.0, "vcota": 0.1, "vtotal": 0.5}, {"t": "RECR11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 37.0, "vcota": 0.819, "vtotal": 30.31}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "WEGE3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-12", "qtd": 6.0, "vcota": 0.11, "vtotal": 0.57}, {"t": "WEGE3", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-12", "qtd": 6.0, "vcota": 0.111, "vtotal": 0.57}, {"t": "WEGE3", "tipo": "Dividendo", "data": "2025-12-12", "qtd": 6.0, "vcota": 0.342, "vtotal": 2.05}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2025-12-12", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2025-12-16", "qtd": 18.0, "vcota": 0.8, "vtotal": 14.4}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2025-12-17", "qtd": 342.0, "vcota": 0.14, "vtotal": 47.88}, {"t": "KEPL3", "tipo": "Dividendo", "data": "2025-12-17", "qtd": 19.0, "vcota": 0.144, "vtotal": 2.74}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2025-12-19", "qtd": 37.0, "vcota": 1.1, "vtotal": 40.7}, {"t": "PETR4", "tipo": "Dividendo", "data": "2025-12-22", "qtd": 1.0, "vcota": 0.201, "vtotal": 0.2}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-22", "qtd": 1.0, "vcota": 0.135, "vtotal": 0.12}, {"t": "PETR4", "tipo": "Dividendo", "data": "2025-12-22", "qtd": 13.0, "vcota": 0.201, "vtotal": 2.61}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2025-12-22", "qtd": 13.0, "vcota": 0.135, "vtotal": 1.49}, {"t": "XPML11", "tipo": "Rendimento", "data": "2025-12-23", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "EGIE3", "tipo": "Dividendo", "data": "2025-12-23", "qtd": 7.0, "vcota": 0.881, "vtotal": 6.17}, {"t": "CMIG3", "tipo": "Dividendo", "data": "2025-12-30", "qtd": 1.0, "vcota": 0.329, "vtotal": 0.32}, {"t": "ITSA3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-01-02", "qtd": 33.0, "vcota": 0.024, "vtotal": 0.66}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-01-02", "qtd": 22.0, "vcota": 0.017, "vtotal": 0.32}, {"t": "VALE3", "tipo": "Dividendo", "data": "2026-01-07", "qtd": 1.0, "vcota": 1.244, "vtotal": 1.24}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2026-01-08", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GARE11", "tipo": "Rendimento", "data": "2026-01-08", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2026-01-09", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2026-01-14", "qtd": 23.0, "vcota": 1.3, "vtotal": 29.9}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2026-01-15", "qtd": 207.0, "vcota": 0.097, "vtotal": 20.07}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2026-01-15", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2026-01-15", "qtd": 9.0, "vcota": 1.25, "vtotal": 11.25}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2026-01-15", "qtd": 24.0, "vcota": 1.0, "vtotal": 24.0}, {"t": "RECR11", "tipo": "Rendimento", "data": "2026-01-15", "qtd": 37.0, "vcota": 0.81, "vtotal": 29.97}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2026-01-15", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2026-01-15", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2026-01-19", "qtd": 18.0, "vcota": 0.8, "vtotal": 14.4}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2026-01-20", "qtd": 342.0, "vcota": 0.14, "vtotal": 47.88}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2026-01-22", "qtd": 37.0, "vcota": 1.1, "vtotal": 40.7}, {"t": "XPML11", "tipo": "Rendimento", "data": "2026-01-23", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "TAEE3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-01-28", "qtd": 27.0, "vcota": 0.14, "vtotal": 3.21}, {"t": "TAEE3", "tipo": "Dividendo", "data": "2026-01-28", "qtd": 27.0, "vcota": 0.173, "vtotal": 4.67}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-01-30", "qtd": 6.0, "vcota": 0.27, "vtotal": 1.38}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2026-02-06", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GARE11", "tipo": "Rendimento", "data": "2026-02-06", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2026-02-09", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2026-02-12", "qtd": 23.0, "vcota": 1.2, "vtotal": 27.6}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2026-02-13", "qtd": 207.0, "vcota": 0.093, "vtotal": 19.25}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2026-02-13", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2026-02-13", "qtd": 9.0, "vcota": 0.88, "vtotal": 7.92}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2026-02-13", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2026-02-13", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2026-02-13", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "RECR11", "tipo": "Rendimento", "data": "2026-02-13", "qtd": 37.0, "vcota": 0.828, "vtotal": 30.62}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2026-02-19", "qtd": 18.0, "vcota": 0.8, "vtotal": 14.4}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2026-02-20", "qtd": 342.0, "vcota": 0.145, "vtotal": 49.59}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2026-02-20", "qtd": 1.0, "vcota": 0.472, "vtotal": 0.4}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2026-02-24", "qtd": 37.0, "vcota": 1.1, "vtotal": 40.7}, {"t": "XPML11", "tipo": "Rendimento", "data": "2026-02-25", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "VALE3", "tipo": "Dividendo", "data": "2026-03-04", "qtd": 1.0, "vcota": 0.768, "vtotal": 0.76}, {"t": "VALE3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-03-04", "qtd": 1.0, "vcota": 1.57, "vtotal": 1.33}, {"t": "BBAS3", "tipo": "Rendimento", "data": "2026-03-05", "qtd": 5.0, "vcota": 0.005, "vtotal": 0.02}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-03-05", "qtd": 5.0, "vcota": 0.216, "vtotal": 0.9}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2026-03-06", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GARE11", "tipo": "Rendimento", "data": "2026-03-06", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2026-03-09", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-03-11", "qtd": 5.0, "vcota": 0.07, "vtotal": 0.29}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2026-03-12", "qtd": 23.0, "vcota": 1.0, "vtotal": 23.0}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2026-03-13", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "RECR11", "tipo": "Rendimento", "data": "2026-03-13", "qtd": 37.0, "vcota": 0.725, "vtotal": 26.83}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2026-03-13", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2026-03-13", "qtd": 9.0, "vcota": 1.1, "vtotal": 9.9}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2026-03-13", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2026-03-13", "qtd": 207.0, "vcota": 0.093, "vtotal": 19.25}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2026-03-13", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2026-03-17", "qtd": 18.0, "vcota": 0.7, "vtotal": 12.6}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2026-03-18", "qtd": 342.0, "vcota": 0.145, "vtotal": 49.59}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2026-03-20", "qtd": 1.0, "vcota": 0.175, "vtotal": 0.15}, {"t": "PETR4", "tipo": "Dividendo", "data": "2026-03-20", "qtd": 1.0, "vcota": 0.296, "vtotal": 0.29}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2026-03-20", "qtd": 37.0, "vcota": 1.05, "vtotal": 38.85}, {"t": "XPML11", "tipo": "Rendimento", "data": "2026-03-25", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "GARE11", "tipo": "Rendimento", "data": "2026-04-08", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2026-04-08", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2026-04-09", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "VIVT3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-04-14", "qtd": 1.0, "vcota": 0.148, "vtotal": 0.12}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2026-04-14", "qtd": 23.0, "vcota": 1.15, "vtotal": 26.45}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2026-04-15", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2026-04-15", "qtd": 9.0, "vcota": 1.1, "vtotal": 9.9}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2026-04-15", "qtd": 207.0, "vcota": 0.093, "vtotal": 19.25}, {"t": "RECR11", "tipo": "Rendimento", "data": "2026-04-15", "qtd": 37.0, "vcota": 1.034, "vtotal": 38.23}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2026-04-15", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2026-04-15", "qtd": 171.0, "vcota": 0.095, "vtotal": 16.24}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2026-04-15", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2026-04-17", "qtd": 18.0, "vcota": 0.7, "vtotal": 12.6}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2026-04-20", "qtd": 342.0, "vcota": 0.14, "vtotal": 47.88}, {"t": "TIMS3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-04-22", "qtd": 1.0, "vcota": 0.202, "vtotal": 0.17}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2026-04-23", "qtd": 37.0, "vcota": 1.1, "vtotal": 40.7}, {"t": "XPML11", "tipo": "Rendimento", "data": "2026-04-24", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "BBDC3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-04-30", "qtd": 22.0, "vcota": 0.27, "vtotal": 5.05}, {"t": "GARE11", "tipo": "Rendimento", "data": "2026-05-08", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2026-05-08", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2026-05-11", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2026-05-14", "qtd": 23.0, "vcota": 1.1, "vtotal": 25.3}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2026-05-15", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "RECR11", "tipo": "Rendimento", "data": "2026-05-15", "qtd": 37.0, "vcota": 1.053, "vtotal": 38.94}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2026-05-15", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2026-05-15", "qtd": 9.0, "vcota": 1.1, "vtotal": 9.9}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2026-05-15", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2026-05-15", "qtd": 207.0, "vcota": 0.095, "vtotal": 19.66}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2026-05-15", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2026-05-19", "qtd": 18.0, "vcota": 0.9, "vtotal": 16.2}, {"t": "EGIE3", "tipo": "Dividendo", "data": "2026-05-20", "qtd": 2.0, "vcota": 0.488, "vtotal": 0.97}, {"t": "EGIE3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-05-20", "qtd": 0.8, "vcota": 0.088, "vtotal": 0.06}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2026-05-20", "qtd": 1.0, "vcota": 0.313, "vtotal": 0.26}, {"t": "PETR4", "tipo": "Rendimento", "data": "2026-05-20", "qtd": 1.0, "vcota": 0.016, "vtotal": 0.01}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2026-05-20", "qtd": 342.0, "vcota": 0.13, "vtotal": 44.46}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2026-05-22", "qtd": 37.0, "vcota": 1.1, "vtotal": 40.7}, {"t": "XPML11", "tipo": "Rendimento", "data": "2026-05-25", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "GARE11", "tipo": "Rendimento", "data": "2026-06-08", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2026-06-08", "qtd": 31.0, "vcota": 1.0, "vtotal": 31.0}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2026-06-09", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-06-11", "qtd": 15.0, "vcota": 0.06, "vtotal": 0.74}, {"t": "BBAS3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-06-11", "qtd": 15.0, "vcota": 0.082, "vtotal": 1.01}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2026-06-12", "qtd": 23.0, "vcota": 1.1, "vtotal": 25.3}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2026-06-15", "qtd": 207.0, "vcota": 0.105, "vtotal": 21.73}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2026-06-15", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2026-06-15", "qtd": 9.0, "vcota": 1.1, "vtotal": 9.9}, {"t": "RECR11", "tipo": "Rendimento", "data": "2026-06-15", "qtd": 37.0, "vcota": 1.118, "vtotal": 41.36}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2026-06-15", "qtd": 24.0, "vcota": 0.93, "vtotal": 22.32}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2026-06-15", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2026-06-15", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2026-06-17", "qtd": 18.0, "vcota": 0.95, "vtotal": 17.1}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2026-06-18", "qtd": 342.0, "vcota": 0.13, "vtotal": 44.46}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2026-06-22", "qtd": 37.0, "vcota": 1.05, "vtotal": 38.85}, {"t": "PETR4", "tipo": "Juros Sobre Capital Próprio", "data": "2026-06-22", "qtd": 1.0, "vcota": 0.313, "vtotal": 0.26}, {"t": "PETR4", "tipo": "Rendimento", "data": "2026-06-22", "qtd": 1.0, "vcota": 0.02, "vtotal": 0.02}, {"t": "XPML11", "tipo": "Rendimento", "data": "2026-06-25", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}, {"t": "SAPR3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-06-26", "qtd": 6.0, "vcota": 0.261, "vtotal": 1.33}, {"t": "CMIG3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-06-30", "qtd": 1.0, "vcota": 0.095, "vtotal": 0.08}, {"t": "CMIG3", "tipo": "Juros Sobre Capital Próprio", "data": "2026-06-30", "qtd": 6.0, "vcota": 0.104, "vtotal": 0.53}, {"t": "RZTR11", "tipo": "Rendimento", "data": "2026-07-07", "qtd": 31.0, "vcota": 0.9, "vtotal": 27.9}, {"t": "GARE11", "tipo": "Rendimento", "data": "2026-07-07", "qtd": 97.0, "vcota": 0.083, "vtotal": 8.05}, {"t": "GGRC11", "tipo": "Rendimento", "data": "2026-07-08", "qtd": 102.0, "vcota": 0.1, "vtotal": 10.2}, {"t": "KNCR11", "tipo": "Rendimento", "data": "2026-07-13", "qtd": 23.0, "vcota": 1.1, "vtotal": 25.3}, {"t": "BTCI11", "tipo": "Rendimento", "data": "2026-07-14", "qtd": 207.0, "vcota": 0.105, "vtotal": 21.73}, {"t": "HGLG11", "tipo": "Rendimento", "data": "2026-07-14", "qtd": 6.0, "vcota": 1.1, "vtotal": 6.6}, {"t": "KNRI11", "tipo": "Rendimento", "data": "2026-07-14", "qtd": 9.0, "vcota": 1.38, "vtotal": 12.42}, {"t": "TRXF11", "tipo": "Rendimento", "data": "2026-07-14", "qtd": 24.0, "vcota": 1.5, "vtotal": 36.0}, {"t": "RECR11", "tipo": "Rendimento", "data": "2026-07-14", "qtd": 37.0, "vcota": 1.076, "vtotal": 39.8}, {"t": "XPLG11", "tipo": "Rendimento", "data": "2026-07-14", "qtd": 11.0, "vcota": 0.82, "vtotal": 9.02}, {"t": "MXRF11", "tipo": "Rendimento", "data": "2026-07-14", "qtd": 171.0, "vcota": 0.1, "vtotal": 17.1}, {"t": "RBRR11", "tipo": "Rendimento", "data": "2026-07-16", "qtd": 18.0, "vcota": 0.98, "vtotal": 17.64}, {"t": "VGIA11", "tipo": "Rendimento", "data": "2026-07-17", "qtd": 342.0, "vcota": 0.13, "vtotal": 44.46}, {"t": "RZAK11", "tipo": "Rendimento", "data": "2026-07-21", "qtd": 37.0, "vcota": 1.05, "vtotal": 38.85}, {"t": "XPML11", "tipo": "Rendimento", "data": "2026-07-24", "qtd": 11.0, "vcota": 0.92, "vtotal": 10.12}];
+
+const segColors = {Papel:"#5b8cff", Tijolo:"#f2b84b", Fiagro:"#a480ff", Hibrido:"#21d6a0"};
+const segLabel = {Papel:"Papel (CRI)", Tijolo:"Tijolo", Fiagro:"Fiagro", Hibrido:"Híbrido"};
+
+let totalAcoes, totalFiis, totalRF, totalGeral;
+function recalcTotais(){
+  totalAcoes = acoes.reduce((s,a)=>s+a.valor,0);
+  totalFiis = fiis.reduce((s,a)=>s+a.valor,0);
+  totalRF = rendaFixa.reduce((s,a)=>s+a.valor,0);
+  totalGeral = totalAcoes + totalFiis + totalRF;
+}
+recalcTotais();
+
+function brl(v){ return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+function pct(v){ return v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; }
+
+// ---------------- KPIs 100% calculados a partir das planilhas enviadas ----------------
+function renderKpis(){
+  const ativosComCusto = [...acoes, ...fiis].filter(a => a.precoMedio);
+  const custoTotalConhecido = ativosComCusto.reduce((s,a)=>s+a.precoMedio*a.qtd,0);
+  const valorAtualConhecido = ativosComCusto.reduce((s,a)=>s+a.valor,0);
+  const ganhoCapitalConhecido = valorAtualConhecido - custoTotalConhecido;
+  const rentCapitalConhecido = ganhoCapitalConhecido/custoTotalConhecido*100;
+  const proventosTotalGeral = Object.keys(proventosPorMes).reduce((s,m)=>s+totalMes(m,'all'),0);
+  const proventos12mKpi = todosMeses.slice(-12).reduce((s,m)=>s+totalMes(m,'all'),0);
+  const rentabilidade12m = (ganhoCapitalConhecido + proventos12mKpi)/custoTotalConhecido*100;
+
+  document.getElementById('kpi-total').textContent = brl(totalGeral);
+  document.getElementById('kpi-investido').textContent = brl(custoTotalConhecido);
+  document.getElementById('kpi-lucro').textContent = (ganhoCapitalConhecido>=0?'+':'−')+brl(Math.abs(ganhoCapitalConhecido));
+  const lucroDelta = document.getElementById('kpi-lucro-delta');
+  lucroDelta.className = 'delta ' + (rentCapitalConhecido>=0?'pos':'neg');
+  lucroDelta.textContent = (rentCapitalConhecido>=0?'↑ +':'↓ ')+rentCapitalConhecido.toFixed(2)+'% · só variação de preço, sem proventos';
+  document.getElementById('kpi-proventos12m').textContent = brl(proventosTotalGeral);
+  const rentEl = document.getElementById('kpi-rentTotal');
+  rentEl.textContent = (rentabilidade12m>=0?'+':'')+rentabilidade12m.toFixed(2)+'%';
+  rentEl.className = 'value num ' + (rentabilidade12m>=0?'pos':'neg');
+}
+
+// ---------------- TABELAS ----------------
+function initials(t){ return t.slice(0,4); }
+function sortValue(item, key){
+  switch(key){
+    case 'ticker': return item.ticker;
+    case 'qtd': return item.qtd;
+    case 'pm': return item.precoMedio ?? null;
+    case 'preco': return item.preco;
+    case 'rent': return item.precoMedio ? (item.preco-item.precoMedio)/item.precoMedio : null;
+    case 'seg': return segLabel[item.seg] || '';
+    case 'valor': return item.valor;
+    case 'pctCarteira': return item.valor; // mesma ordem relativa de valor
+    default: return item.valor;
+  }
+}
+function sortList(list, key, dir){
+  if(!key) return list;
+  return list.slice().sort((a,b)=>{
+    const va = sortValue(a,key), vb = sortValue(b,key);
+    if(va==null && vb==null) return 0;
+    if(va==null) return 1;
+    if(vb==null) return -1;
+    if(typeof va === 'string') return dir*va.localeCompare(vb);
+    return dir*(va-vb);
+  });
+}
+function bindSortableHeaders(theadId, renderFn, stateRef){
+  document.querySelectorAll(`#${theadId} th.sortable`).forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.key;
+      if(stateRef.key===key){ stateRef.dir *= -1; } else { stateRef.key = key; stateRef.dir = 1; }
+      document.querySelectorAll(`#${theadId} th.sortable`).forEach(t=>{
+        t.classList.remove('active');
+        t.querySelector('.arrow').textContent = '↕';
+      });
+      th.classList.add('active');
+      th.querySelector('.arrow').textContent = stateRef.dir===1 ? '↑' : '↓';
+      renderFn();
+    });
+  });
+}
+// versão genérica: funciona com qualquer array/objeto, bastando passar um accessor(item,key)=>valor
+function genericSort(list, key, dir, accessor){
+  if(!key) return list;
+  return list.slice().sort((a,b)=>{
+    const va = accessor(a,key), vb = accessor(b,key);
+    if(va==null && vb==null) return 0;
+    if(va==null) return 1;
+    if(vb==null) return -1;
+    if(typeof va === 'string') return dir*va.localeCompare(vb);
+    return dir*(va-vb);
+  });
+}
+
+function tickerBadge(a){
+  if(a.logo) return `<div class="ticker-badge" style="padding:0; overflow:hidden;"><img src="${a.logo}" style="width:100%;height:100%;object-fit:contain;background:#fff;" onerror="this.parentElement.textContent='${initials(a.ticker)}'"></div>`;
+  return `<div class="ticker-badge">${initials(a.ticker)}</div>`;
+}
+
+const sortStateAcoes = { key:'valor', dir:-1 };
+function renderAcoesTable(){
+  const tbodyAcoes = document.getElementById('tbodyAcoes');
+  tbodyAcoes.innerHTML = '';
+  const lista = sortList(acoes, sortStateAcoes.key, sortStateAcoes.dir);
+  lista.forEach(a=>{
+    const p = a.valor/totalGeral*100;
+    let rentCell = '<span style="color:var(--text-faint)">—</span>';
+    let pmCell = '<span style="color:var(--text-faint)">—</span>';
+    if(a.precoMedio){
+      const rent = (a.preco - a.precoMedio)/a.precoMedio*100;
+      const cls = rent>=0 ? 'pos' : 'neg';
+      const seta = rent>=0 ? '↑' : '↓';
+      rentCell = `<span class="delta ${cls}" style="justify-content:flex-end; display:inline-flex;">${seta} ${Math.abs(rent).toFixed(1)}%</span>`;
+      pmCell = brl(a.precoMedio);
+    }
+    tbodyAcoes.innerHTML += `<tr>
+      <td><div class="ticker-cell">${tickerBadge(a)}
+        <div><div class="ticker-name">${a.ticker}</div><div class="ticker-sub">${a.nome}</div></div></div></td>
+      <td class="r">${a.qtd}</td>
+      <td class="r">${pmCell}</td>
+      <td class="r">${brl(a.preco)}</td>
+      <td class="r">${rentCell}</td>
+      <td class="r">${brl(a.valor)}</td>
+      <td class="r">${pct(p)}</td>
+    </tr>`;
+  });
+}
+bindSortableHeaders('theadAcoes', renderAcoesTable, sortStateAcoes);
+
+let filtroSegmentoAtual = 'all';
+const sortStateFiis = { key:'valor', dir:-1 };
+function renderFiisTable(){
+  const tbodyFiis = document.getElementById('tbodyFiis');
+  tbodyFiis.innerHTML = '';
+  const filtrada = fiis.filter(f => filtroSegmentoAtual==='all' || f.seg===filtroSegmentoAtual);
+  const lista = sortList(filtrada, sortStateFiis.key, sortStateFiis.dir);
+  lista.forEach(f=>{
+    const p = f.valor/totalGeral*100;
+    const tagClass = f.seg==="Papel"?"papel":f.seg==="Tijolo"?"tijolo":f.seg==="Fiagro"?"fiagro":"hibrido";
+    let rentCell = '<span style="color:var(--text-faint)">—</span>';
+    let pmCell = '<span style="color:var(--text-faint)">—</span>';
+    if(f.precoMedio){
+      const rent = (f.preco - f.precoMedio)/f.precoMedio*100;
+      const cls = rent>=0 ? 'pos' : 'neg';
+      const seta = rent>=0 ? '↑' : '↓';
+      rentCell = `<span class="delta ${cls}" style="justify-content:flex-end; display:inline-flex;">${seta} ${Math.abs(rent).toFixed(1)}%</span>`;
+      pmCell = brl(f.precoMedio);
+    }
+    tbodyFiis.innerHTML += `<tr>
+      <td><div class="ticker-cell">${tickerBadge(f)}
+        <div><div class="ticker-name">${f.ticker}</div><div class="ticker-sub">${f.nome}</div></div></div></td>
+      <td class="r">${f.qtd}</td>
+      <td class="r">${pmCell}</td>
+      <td class="r">${brl(f.preco)}</td>
+      <td class="r">${rentCell}</td>
+      <td><span class="tag ${tagClass}">${segLabel[f.seg]}</span></td>
+      <td class="r">${brl(f.valor)}</td>
+      <td class="r">${pct(p)}</td>
+    </tr>`;
+  });
+  const somaFiltrada = lista.reduce((s,f)=>s+f.valor,0);
+  const contagemEl = document.getElementById('fiisContagem');
+  if(contagemEl) contagemEl.textContent = `${lista.length} posições · ${brl(somaFiltrada)}`;
+}
+bindSortableHeaders('theadFiis', renderFiisTable, sortStateFiis);
+document.getElementById('filtroSegmentoFiis').addEventListener('change', (e)=>{
+  filtroSegmentoAtual = e.target.value;
+  renderFiisTable();
+});
+
+renderKpis();
+renderAcoesTable();
+renderFiisTable();
+
+const tbodyRF = document.getElementById('tbodyRF');
+rendaFixa.forEach(r=>{
+  tbodyRF.innerHTML += `<tr>
+    <td><div class="ticker-name" style="font-size:12.8px">${r.nome}</div></td>
+    <td style="color:var(--text-dim)">${r.venc}</td>
+    <td class="r">${brl(r.valor)}</td>
+  </tr>`;
+});
+
+// ---------------- CHARTS ----------------
+function tooltipBRL(ctx){
+  const label = ctx.label || ctx.dataset.label || '';
+  let v = ctx.parsed;
+  if (v && typeof v === 'object') v = (v.y ?? v.x ?? null);
+  if (v == null) v = ctx.raw;
+  if (v == null || isNaN(v)) return `${label}: sem dado`;
+  return `${label}: ${brl(v)}`;
+}
+
+const alocLabels = ['Fundos Imobiliários','Tesouro Direto','Ações'];
+const alocColors = ['#f2b84b','#a480ff','#21d6a0'];
+let chartAlocacaoRef = new Chart(document.getElementById('chartAlocacao'), {
+  type:'doughnut',
+  data:{
+    labels: alocLabels,
+    datasets:[{
+      data:[totalFiis, totalRF, totalAcoes],
+      backgroundColor: alocColors,
+      borderColor:'#12151c', borderWidth:3, hoverOffset:10
+    }]
+  },
+  options:{
+    cutout:'72%', interaction:{ mode:'nearest' },
+    plugins:{
+      legend:{ display:false },
+      tooltip:{ callbacks:{ label:tooltipBRL }, backgroundColor:'#171b24', borderColor:'#242a37', borderWidth:1, padding:10, titleFont:{family:'Space Grotesk'} }
+    }
+  }
+});
+function renderLegendAlocacao(){
+  const vals = [totalFiis, totalRF, totalAcoes];
+  const soma = vals.reduce((a,b)=>a+b,0);
+  const el = document.getElementById('legendAlocacao');
+  el.innerHTML = '';
+  alocLabels.forEach((l,i)=>{
+    const p = vals[i]/soma*100;
+    el.innerHTML += `<div class="legend-row"><div class="legend-left"><span class="legend-swatch" style="background:${alocColors[i]}"></span>${l}</div><div class="legend-right">${pct(p)}</div></div>`;
+  });
+}
+renderLegendAlocacao();
+
+const segAgg = {};
+fiis.forEach(f=>{ segAgg[f.seg] = (segAgg[f.seg]||0) + f.valor; });
+const segKeys = Object.keys(segAgg).sort((a,b)=>segAgg[b]-segAgg[a]);
+new Chart(document.getElementById('chartSegmento'), {
+  type:'doughnut',
+  data:{
+    labels: segKeys.map(k=>segLabel[k]),
+    datasets:[{ data: segKeys.map(k=>segAgg[k]), backgroundColor: segKeys.map(k=>segColors[k]), borderColor:'#12151c', borderWidth:3, hoverOffset:10 }]
+  },
+  options:{
+    cutout:'72%',
+    plugins:{
+      legend:{ display:false },
+      tooltip:{ callbacks:{ label:tooltipBRL }, backgroundColor:'#171b24', borderColor:'#242a37', borderWidth:1, padding:10 }
+    }
+  }
+});
+const legendSeg = document.getElementById('legendSegmento');
+segKeys.forEach(k=>{
+  const p = segAgg[k]/totalFiis*100;
+  legendSeg.innerHTML += `<div class="legend-row"><div class="legend-left"><span class="legend-swatch" style="background:${segColors[k]}"></span>${segLabel[k]}</div><div class="legend-right">${pct(p)}</div></div>`;
+});
+
+// ---------------- ANÁLISE DE MERCADO ----------------
+const fiiAnalysis = [
+  {ticker:"HGLG11", nome:"Pátria Logística", seg:"Tijolo", reco:"Compra", score:78,
+   pvp:"0,88", dy:"9,0% (12m)", divCota:1.10, precoRef:151.00,
+   nota:"Vacância física caiu para <b>2,2%–3,3%</b> com novas locações. Destaque do mês: contrato <b>Built to Suit com o Mercado Livre</b> (52.200 m²), elevando o yield on cost do ativo Itupeva para ~11,8%. Resultado de junho subiu <b>47%</b> frente ao mês anterior. Negociado com <b>desconto de 12%</b> sobre o valor patrimonial."},
+  {ticker:"BTCI11", nome:"BTG Pactual Crédito Imobiliário", seg:"Papel", reco:"Compra", score:74,
+   pvp:"0,90–0,93", dy:"12,9% (12m)", divCota:0.105, precoRef:9.12,
+   nota:"88% do PL alocado em CRIs, <b>96% indexados ao IPCA</b> — proteção inflacionária. Negocia com <b>desconto patrimonial relevante</b> e alta liquidez diária (~R$ 2 mi). Preço-justo estimado por casas de análise fica acima da cotação atual."},
+  {ticker:"GGRC11", nome:"Zagros Renda Imobiliária", seg:"Tijolo", reco:"Compra", score:72,
+   pvp:"~0,98", dy:"~12,1% (anualizado)", divCota:0.10, precoRef:9.89,
+   nota:"Lucro saltou <b>78%</b> entre dezembro e janeiro por aumento de receitas imobiliárias e financeiras. Cota acumula alta de <b>+6% no ano</b>. Fundo em expansão, caminhando para R$ 2 bi de patrimônio."},
+  {ticker:"TRXF11", nome:"TRX Real Estate", seg:"Tijolo", reco:"Compra", score:70,
+   pvp:"próx. de 1,0", dy:"~12,2% (anualizado)", divCota:0.93, precoRef:91.80,
+   nota:"Dividendo de julho com yield mensal de <b>1,63%</b>, acima da média do fundo. PL de R$ 6,08 bi, portfólio de renda urbana com contratos longos (ex.: Hospital Albert Einstein). Gestão segue reciclando carteira com novas aquisições."},
+  {ticker:"VGIA11", nome:"Valora CRA Fiagro", seg:"Fiagro", reco:"Compra", score:66,
+   pvp:"0,86", dy:"~16,0% (anualizado)", divCota:0.13, precoRef:9.76,
+   nota:"Maior Fiagro em número de cotistas. DY mensal de <b>1,33%</b>, carteira 91% indexada ao CDI, pulverizada em 25 estados. Cota já valorizou <b>+51% em 12 meses</b> — parte do potencial de reprecificação pode já ter sido capturada."},
+  {ticker:"KNCR11", nome:"Kinea Rendimentos Imobiliários", seg:"Papel", reco:"Compra", score:64,
+   pvp:"~0,95", dy:"~12,2% (anualizado)", divCota:1.10, precoRef:107.89,
+   nota:"Fundo referência em CRI indexado ao CDI, DY mensal de <b>1,16%</b>. Concluiu 12ª emissão captando R$ 3,18 bi, reforçando escala e liquidez — porém dilui parte do potencial de desconto de curto prazo."},
+  {ticker:"KNRI11", nome:"Kinea Renda Imobiliária", seg:"Híbrido", reco:"Manter", score:61,
+   pvp:"0,96–0,99", dy:"8,9% (12m)", divCota:1.10, precoRef:153.81,
+   nota:"Vendeu o Edifício Athenas com lucro de R$ 44,1 mi (~R$1,56/cota de ganho de capital). Vacância física em <b>3,87%</b>, concentrada em escritórios; logística resiliente. Portfólio de qualidade, mas já negocia perto do valor patrimonial."},
+  {ticker:"MXRF11", nome:"Maxi Renda", seg:"Papel", reco:"Manter", score:58,
+   pvp:"~1,00", dy:"12,8% (12m)", divCota:0.10, precoRef:9.81,
+   nota:"Um dos maiores e mais pulverizados FIIs do país (quase 1,4 mi de cotistas). DY mensal estável em <b>1,04%</b>, mas distribuição por cota estagnada em R$0,10 há meses e cota já negociando próxima ao valor patrimonial — menos espaço para ganho de capital."},
+  {ticker:"RZTR11", nome:"Riza Terrax", seg:"Fiagro", reco:"Manter", score:55,
+   pvp:"0,88", dy:"13,4% (anualizado)", divCota:1.00, precoRef:89.69,
+   nota:"Fundo de terras agrícolas — nicho de maior volatilidade. Cota caiu <b>~8% no ano</b>, mas negocia com desconto patrimonial e segue renegociando arrendamentos após colheitas. DY elevado compensa parte do risco de reprecificação."},
+  {ticker:"RECR11", nome:"REC Recebíveis Imobiliários", seg:"Papel", reco:"Manter", score:52,
+   pvp:"0,93–0,94", dy:"~16,4% (anualizado)", divCota:1.118, precoRef:81.67,
+   nota:"Resultado de junho recuou para R$ 28,4 mi (queda no lucro caixa) com alta nas despesas de compromissadas. Gestão seguiu reciclando a carteira, vendendo o CRI Matarazzo Retail e alocando em novos CRIs CDI/IPCA. Alocação em 95% do PL. DY do mês veio acima da média — vale confirmar se é recorrente antes de contar com ele."},
+  {ticker:"RBRR11", nome:"RBR Rendimento High Grade", seg:"Papel", reco:"Manter", score:60,
+   pvp:"dado não coletado", dy:"~14,6% (anualizado)", divCota:0.95, precoRef:78.23,
+   nota:"Fundo de papel high grade com histórico consistente de distribuição. Não localizamos o relatório gerencial mais recente com detalhes de carteira — vale conferir o comunicado mais atual no site da BTG DTVM antes de qualquer decisão."},
+  {ticker:"GARE11", nome:"Guardian Real Estate", seg:"Tijolo", reco:"Manter", score:48,
+   pvp:"~0,95", dy:"~7,1% (12m)", divCota:0.083, precoRef:8.17,
+   nota:"Cota em queda de <b>~5,4% no ano</b>. DY 12 meses mais modesto frente aos pares de tijolo da carteira. Fundo pequeno e menos líquido — acompanhar próximos relatórios antes de aumentar posição."},
+  {ticker:"RZAK11", nome:"Riza Akin", seg:"Papel", reco:"Reduzir", score:45,
+   pvp:"0,95", dy:"~15,7% (anualizado)", divCota:1.05, precoRef:80.34,
+   nota:"Distribuição mensal em <b>trajetória de queda</b> (R$1,10 → R$1,05/cota) e patrimônio líquido encolhendo levemente, com saída de cotistas no período. Ainda entrega DY elevado, mas o sinal de tendência pede atenção redobrada."},
+  {ticker:"XPLG11", nome:"XP Log", seg:"Tijolo", reco:"Reduzir", score:42,
+   pvp:"desconto moderado", dy:"~6,3% (12m)", divCota:0.82, precoRef:93.79,
+   nota:"Cota caiu <b>~10% no ano</b> e o DY de 12 meses (~6,3%) está abaixo da média do segmento de logística na sua carteira (HGLG11 entrega ~9%). Vale reavaliar o tamanho da posição frente a pares mais eficientes."},
+  {ticker:"XPML11", nome:"XP Malls", seg:"Tijolo", reco:"Reduzir", score:38,
+   pvp:"acima do par", dy:"~6,2% (12m)", divCota:0.92, precoRef:104.47,
+   nota:"Cota já valorizou <b>+13,7% em 12 meses</b> — parte do upside parece precificado. Analistas do BTG Pactual projetam <b>proventos menores</b> à frente para o fundo. DY relativamente baixo para o perfil de risco de shoppings."},
+];
+// Campos derivados diretamente dos proventos que você recebeu em junho/2026 (dado real do seu extrato B3)
+fiiAnalysis.forEach(f=>{
+  f.dyAnualizado = (f.divCota*12/f.precoRef*100);           // DY anualizado com base no provento de jun/26
+  const posicao = fiis.find(x=>x.ticker===f.ticker);
+  f.totalJun = posicao ? (posicao.qtd*f.divCota) : 0;        // total em R$ recebido em junho na posição atual
+});
+
+const fiiGrid = document.getElementById('fiiGrid');
+let currentFilter = 'all';
+let currentSort = 'score';
+
+function renderFiiGrid(){
+  fiiGrid.innerHTML = '';
+  let list = fiiAnalysis.filter(f => currentFilter==='all' || f.reco===currentFilter);
+  if(currentSort==='dy') list = list.slice().sort((a,b)=>b.dyAnualizado-a.dyAnualizado);
+  else if(currentSort==='reais') list = list.slice().sort((a,b)=>b.totalJun-a.totalJun);
+  else list = list.slice().sort((a,b)=>b.score-a.score);
+
+  list.forEach(f=>{
+    const color = f.score>=65 ? 'var(--emerald)' : f.score>=50 ? 'var(--amber)' : 'var(--red)';
+    const badgeClass = f.reco==='Compra'?'compra':f.reco==='Manter'?'manter':'reduzir';
+    fiiGrid.innerHTML += `
+    <div class="asset-card">
+      <div class="asset-card-top">
+        <div class="asset-id">
+          <div class="badge">${f.ticker.slice(0,4)}</div>
+          <div><div class="name">${f.ticker} <span style="color:var(--text-faint); font-weight:500; font-size:12px;">· ${segLabel[f.seg]}</span></div><div class="sub">${f.nome}</div></div>
+        </div>
+        <div class="reco-badge ${badgeClass}">${f.reco==='Compra'?'COMPRA':f.reco==='Manter'?'MANTER':'ATENÇÃO'}</div>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-track"><div class="gauge-fill" style="width:${f.score}%; background:${color}"></div></div>
+        <div class="gauge-pct" style="color:${color}">${f.score}%</div>
+      </div>
+      <div class="gauge-caption"><span>Venda</span><span>Manter</span><span>Compra</span></div>
+      <div class="metric-row">
+        <div class="metric-box"><div class="l">P/VP</div><div class="v">${f.pvp}</div></div>
+        <div class="metric-box"><div class="l">DY anualizado</div><div class="v" style="color:var(--emerald)">${f.dyAnualizado.toFixed(1)}%</div></div>
+      </div>
+      <div class="metric-row">
+        <div class="metric-box"><div class="l">Últ. provento/cota (jun)</div><div class="v">${brl(f.divCota)}</div></div>
+        <div class="metric-box"><div class="l">Recebido na posição (jun)</div><div class="v">${brl(f.totalJun)}</div></div>
+      </div>
+      <div class="asset-notes">${f.nota}</div>
+    </div>`;
+  });
+}
+renderFiiGrid();
+
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    currentFilter = chip.dataset.filter;
+    renderFiiGrid();
+  });
+});
+document.getElementById('sortSelect').addEventListener('change', (e)=>{
+  currentSort = e.target.value;
+  renderFiiGrid();
+});
+
+const stockAnalysis = [
+  {ticker:"BBAS3", nome:"Banco do Brasil", nota:"Banco estatal com histórico de dividendos elevados, mas sujeito a ruído político e risco de crédito agro. Posição pequena (0,46% da carteira) — mais um pagador de renda do que uma aposta de tese."},
+  {ticker:"BBSE3", nome:"BB Seguridade", nota:"Braço de seguros do BB, modelo de negócio mais previsível e menos dependente de ciclo de crédito. Historicamente um dos melhores pagadores de dividendos do Ibovespa."},
+  {ticker:"EGIE3", nome:"Engie Brasil Energia", nota:"Geradora de energia com forte matriz renovável e contratos de longo prazo — perfil defensivo, dividendos estáveis, baixa correlação com ciclo econômico."},
+  {ticker:"PETR4", nome:"Petrobras PN", nota:"Dividendos historicamente polpudos, mas com alta sensibilidade a preço do petróleo, câmbio e política de preços/investimento do governo. Posição residual (0,06% da carteira)."},
+  {ticker:"SAPR3", nome:"Sanepar", nota:"Saneamento básico regulado no Paraná — receita previsível e defensiva, boa pagadora de JCP. Perfil complementar ao restante da carteira, mais concentrada em renda fixa e FIIs."},
+  {ticker:"VALE3", nome:"Vale", nota:"Mineração, resultado atrelado ao preço do minério de ferro e à demanda da China — ciclo mais volátil. Posição simbólica (0,12% da carteira), baixo impacto no risco total."},
+];
+const stockGrid = document.getElementById('stockGrid');
+stockAnalysis.forEach(s=>{
+  stockGrid.innerHTML += `
+  <div class="stock-card">
+    <div class="stock-top"><div><div class="name">${s.ticker}</div><div class="company">${s.nome}</div></div></div>
+    <div class="stock-note">${s.nota}</div>
+  </div>`;
+});
+
+// ---------------- EVOLUÇÃO DO PATRIMÔNIO ----------------
+new Chart(document.getElementById('chartEvolucao'), {
+  type:'bar',
+  data:{
+    labels: patrimonioEvolucao.map(m=>m.mes),
+    datasets:[
+      {label:'Ações', data:patrimonioEvolucao.map(m=>m.acoes), backgroundColor:'#21d6a0', stack:'s'},
+      {label:'FIIs', data:patrimonioEvolucao.map(m=>m.fiis), backgroundColor:'#f2b84b', stack:'s'},
+      {label:'Tesouro', data:patrimonioEvolucao.map(m=>m.tesouro), backgroundColor:'#a480ff', stack:'s'},
+    ]
+  },
+  options:{
+    interaction:{ mode:'index', intersect:false },
+    plugins:{
+      legend:{ position:'bottom', labels:{ boxWidth:8, boxHeight:8, padding:14, font:{size:11} } },
+      tooltip:{
+        callbacks:{
+          label:tooltipBRL,
+          footer:(items)=>{ const total = items.reduce((s,i)=>s+i.parsed.y,0); return 'Total: '+brl(total); }
+        },
+        backgroundColor:'#171b24', borderColor:'#242a37', borderWidth:1, padding:10, footerFont:{weight:'600'}
+      }
+    },
+    scales:{
+      x:{ stacked:true, grid:{ display:false }, ticks:{ font:{size:10.5} } },
+      y:{ stacked:true, grid:{ color:'#1c212c' }, ticks:{ font:{size:10}, callback:v=>'R$'+(v/1000)+'k' } }
+    }
+  }
+});
+
+// ---------------- RESUMO POR CLASSE ----------------
+const mAtual = patrimonioEvolucao[patrimonioEvolucao.length-1];
+const mAnterior = patrimonioEvolucao[patrimonioEvolucao.length-2];
+const classesBase = [
+  {nome:'Ações', k:'acoes'}, {nome:'FIIs', k:'fiis'}, {nome:'Tesouro Direto', k:'tesouro'}
+];
+const classes = classesBase.map(c=>{
+  const atual = mAtual[c.k], anterior = mAnterior[c.k];
+  const varPct = anterior ? ((atual-anterior)/anterior*100) : 0;
+  return {...c, atual, varPct};
+});
+const sortStateClasse = { key:null, dir:1 };
+function renderResumoClasse(){
+  const lista = genericSort(classes, sortStateClasse.key, sortStateClasse.dir, (item,key)=>item[key]);
+  const tbodyResumo = document.getElementById('tbodyResumoClasse');
+  tbodyResumo.innerHTML = '';
+  lista.forEach(c=>{
+    const cls = c.varPct>0.001 ? 'pos' : c.varPct<-0.001 ? 'neg' : 'neu';
+    const seta = c.varPct>0.001 ? '↑' : c.varPct<-0.001 ? '↓' : '·';
+    tbodyResumo.innerHTML += `<tr>
+      <td>${c.nome}</td>
+      <td class="r">${brl(c.atual)}</td>
+      <td class="r"><span class="delta ${cls}" style="justify-content:flex-end; display:inline-flex;">${seta} ${Math.abs(c.varPct).toFixed(1)}%</span></td>
+    </tr>`;
+  });
+}
+renderResumoClasse();
+bindSortableHeaders('theadResumoClasse', renderResumoClasse, sortStateClasse);
+
+// ---------------- RESUMO RENTABILIDADE FIIs (preço médio real) ----------------
+function renderFiisResumo(){
+  const fiisComPM = fiis.filter(f=>f.precoMedio);
+  const custoTotalFiis = fiisComPM.reduce((s,f)=>s+f.precoMedio*f.qtd,0);
+  const valorAtualFiis = fiisComPM.reduce((s,f)=>s+f.valor,0);
+  const lucroCapitalFiis = valorAtualFiis - custoTotalFiis;
+  const rentCapitalFiis = lucroCapitalFiis/custoTotalFiis*100;
+  const corResumo = rentCapitalFiis>=0 ? 'var(--emerald)' : 'var(--red)';
+  document.getElementById('fiisRentResumo').innerHTML = `
+    <span>📊</span>
+    <div><b>Rentabilidade dos FIIs (preço médio real, ${fiisComPM.length} de 15 fundos):</b>
+    investido <span class="num">${brl(custoTotalFiis)}</span> · valor atual <span class="num">${brl(valorAtualFiis)}</span> ·
+    ganho de capital <span class="num" style="color:${corResumo}">${lucroCapitalFiis>=0?'+':''}${brl(lucroCapitalFiis)} (${rentCapitalFiis>=0?'+':''}${rentCapitalFiis.toFixed(2)}%)</span>
+    — isso não inclui os proventos já recebidos, que somam bem mais que essa variação de preço.</div>`;
+}
+renderFiisResumo();
+
+// ---------------- TOGGLE OCULTAR TABELAS ----------------
+function bindToggle(btnId, cardId, label){
+  const btn = document.getElementById(btnId);
+  const card = document.getElementById(cardId);
+  btn.addEventListener('click', ()=>{
+    const hidden = card.style.display === 'none';
+    card.style.display = hidden ? '' : 'none';
+    btn.textContent = hidden ? 'Ocultar' : 'Mostrar';
+  });
+}
+bindToggle('toggleAcoes','cardAcoes');
+bindToggle('toggleFiis','cardFiis');
+
+// ---------------- ABA PROVENTOS ----------------
+const ultimos12 = todosMeses.slice(-12); // ago/25 ... jul/26
+
+function mesesDoPeriodo(periodo){
+  if(periodo==='atual') return todosMeses.filter(m=>m.startsWith('2026'));
+  if(periodo==='12m') return ultimos12;
+  return todosMeses; // "5a" -> todo o histórico disponível (só temos desde fev/25)
+}
+
+document.getElementById('provMedia').textContent = brl(ultimos12.reduce((s,m)=>s+totalMes(m,'all'),0)/ultimos12.length);
+document.getElementById('provTotal12m').textContent = brl(ultimos12.reduce((s,m)=>s+totalMes(m,'all'),0));
+document.getElementById('provTotalGeral').textContent = brl(todosMeses.reduce((s,m)=>s+totalMes(m,'all'),0));
+
+// distribuição por ativo (últimos 12 meses)
+const distTotais = {};
+ultimos12.forEach(m=>{
+  Object.entries(proventosPorMes[m]).forEach(([t,v])=>{ distTotais[t] = (distTotais[t]||0)+v; });
+});
+const distSorted = Object.entries(distTotais).sort((a,b)=>b[1]-a[1]);
+const distTop = distSorted.slice(0,8);
+const distOutrosSum = distSorted.slice(8).reduce((s,[,v])=>s+v,0);
+const distLabels = distTop.map(d=>d[0]).concat(distOutrosSum>0?['Outros']:[]);
+const distValues = distTop.map(d=>d[1]).concat(distOutrosSum>0?[distOutrosSum]:[]);
+const palette = ['#21d6a0','#5b8cff','#f2b84b','#a480ff','#ff5c6c','#3fb6ff','#ffd166','#8bd450','#6c7a94'];
+new Chart(document.getElementById('chartDistProventos'), {
+  type:'doughnut',
+  data:{ labels:distLabels, datasets:[{ data:distValues, backgroundColor:palette, borderColor:'#12151c', borderWidth:2, hoverOffset:8 }] },
+  options:{ cutout:'68%', plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:tooltipBRL }, backgroundColor:'#171b24', borderColor:'#242a37', borderWidth:1, padding:10 } } }
+});
+const legendDist = document.getElementById('legendDistProventos');
+const distTotalSum = distValues.reduce((a,b)=>a+b,0);
+distLabels.forEach((l,i)=>{
+  const p = distValues[i]/distTotalSum*100;
+  legendDist.innerHTML += `<div class="legend-row"><div class="legend-left"><span class="legend-swatch" style="background:${palette[i]}"></span>${l}</div><div class="legend-right">${pct(p)}</div></div>`;
+});
+
+// evolução mensal (filtrável por período + evento + tipo de ativo)
+let chartEvolProv;
+function renderEvolucaoProventos(){
+  const periodo = document.getElementById('provFiltroPeriodo').value;
+  const evento = document.getElementById('provFiltroEvento').value;
+  const tipoAtivo = document.getElementById('provFiltroTipo').value;
+
+  let meses = mesesDoPeriodo(periodo);
+  if(evento==='futuro') meses = Object.keys(proventosFuturo);
+  else if(evento==='todos') meses = meses.concat(Object.keys(proventosFuturo));
+
+  const recebidosData = meses.map(m => proventosPorMes[m] ? totalMes(m, tipoAtivo) : null);
+  const futuroData = meses.map(m => proventosFuturo[m] ? Object.entries(proventosFuturo[m]).reduce((s,[t,v])=>(tipoAtivo==='all'||tipoDe(t)===tipoAtivo)?s+v:s,0) : null);
+  const labels = meses.map(fmtMes);
+
+  const datasets = [];
+  if(evento!=='futuro') datasets.push({ label:'Recebidos', data:recebidosData, backgroundColor:'#21d6a0', borderRadius:5, maxBarThickness:34 });
+  if(evento!=='recebidos') datasets.push({ label:'Futuro (estimativa)', data:futuroData, backgroundColor:'rgba(33,214,160,.28)', borderRadius:5, maxBarThickness:34 });
+
+  if(chartEvolProv) chartEvolProv.destroy();
+  chartEvolProv = new Chart(document.getElementById('chartEvolucaoProventos'), {
+    type:'bar',
+    data:{ labels, datasets },
+    options:{
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ display: datasets.length>1, position:'bottom', labels:{ boxWidth:8, boxHeight:8, font:{size:11} } },
+        tooltip:{ callbacks:{ label:tooltipBRL }, backgroundColor:'#171b24', borderColor:'#242a37', borderWidth:1, padding:10 }
+      },
+      scales:{ x:{ grid:{ display:false }, ticks:{ font:{size:10} } }, y:{ grid:{ color:'#1c212c' }, ticks:{ callback:v=>'R$'+v } } }
+    }
+  });
+
+  const notas = {
+    atual: 'Mostrando meses de 2026.',
+    '12m': 'Mostrando os últimos 12 meses (ago/25–jul/26).',
+    '5a': 'Seu histórico disponível vai até fev/25 — ainda não completa 5 anos, então "Últimos 5 anos" mostra tudo que existe até aqui.'
+  };
+  let nota = notas[periodo];
+  if(evento!=='recebidos') nota += ' O valor "futuro" é uma estimativa simples baseada no último provento pago por cota — não é um valor confirmado pelo fundo/empresa.';
+  document.getElementById('provNota').textContent = nota;
+}
+renderEvolucaoProventos();
+['provFiltroPeriodo','provFiltroEvento','provFiltroTipo'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderEvolucaoProventos);
+});
+
+// histórico mensal (tabela dinâmica fev/25—jul/26, agrupada por ano)
+const theadHist = document.getElementById('theadHistorico');
+const mesesCols = ['01','02','03','04','05','06','07','08','09','10','11','12'];
+theadHist.innerHTML = '<th>Ano</th>' + mesesCols.map(m=>`<th class="r">${mesesLabel[m]}</th>`).join('') + '<th class="r">Total</th>';
+
+const tbodyHist = document.getElementById('tbodyHistorico');
+['2025','2026'].forEach(ano=>{
+  let total = 0;
+  const cells = mesesCols.map(mm=>{
+    const key = `${ano}-${mm}`;
+    if(proventosPorMes[key]){
+      const v = totalMes(key,'all');
+      total += v;
+      return `<td class="r">${brl(v)}</td>`;
+    }
+    return `<td class="r" style="color:var(--text-faint)">—</td>`;
+  }).join('');
+  tbodyHist.innerHTML += `<tr><td><b>${ano}</b></td>${cells}<td class="r"><b>${brl(total)}</b></td></tr>`;
+});
+
+// ---------------- LISTA DETALHADA DE PROVENTOS ----------------
+const fiiSegMap = Object.fromEntries(fiis.map(f=>[f.ticker, f.seg]));
+const tipoProvLabel = {Rendimento:'Rendimento', Dividendo:'Dividendo', 'Juros Sobre Capital Próprio':'JCP'};
+
+function inPeriodo(dataStr, periodo){
+  if(periodo==='all') return true;
+  const d = new Date(dataStr+'T00:00:00');
+  const now = new Date();
+  if(periodo==='ano') return d.getFullYear()===now.getFullYear();
+  if(periodo==='mesAtual') return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  if(periodo==='30d'){ const c=new Date(now); c.setDate(c.getDate()-30); return d>=c && d<=now; }
+  if(periodo==='12m'){ const c=new Date(now); c.setMonth(c.getMonth()-12); return d>=c && d<=now; }
+  return true;
+}
+
+function detAccessor(item, key){
+  switch(key){
+    case 't': return item.t;
+    case 'tipoAtivo': return tipoDe(item.t);
+    case 'seg': return segLabel[fiiSegMap[item.t]] || '';
+    case 'tipo': return tipoProvLabel[item.tipo] || item.tipo;
+    case 'qtd': return item.qtd;
+    case 'vcota': return item.vcota;
+    case 'vtotal': return item.vtotal;
+    case 'data': default: return item.data;
+  }
+}
+const sortStateDet = { key:'data', dir:-1 };
+
+function renderProventosDetalhado(){
+  const fTipo = document.getElementById('detFiltroTipoAtivo').value;
+  const fSeg = document.getElementById('detFiltroSegmento').value;
+  const fPer = document.getElementById('detFiltroPeriodo').value;
+
+  const filtrada = proventosDetalhado.filter(p=>{
+    const tipoAtivo = tipoDe(p.t);
+    if(fTipo!=='all' && tipoAtivo!==fTipo) return false;
+    if(fSeg!=='all'){
+      const seg = fiiSegMap[p.t];
+      if(seg!==fSeg) return false;
+    }
+    if(!inPeriodo(p.data, fPer)) return false;
+    return true;
+  });
+  const lista = genericSort(filtrada, sortStateDet.key, sortStateDet.dir, detAccessor);
+
+  const tbody = document.getElementById('tbodyProventosDetalhado');
+  tbody.innerHTML = '';
+  if(lista.length===0){
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-faint); padding:24px;">Nenhum provento encontrado com esses filtros.</td></tr>`;
+  } else {
+    lista.forEach(p=>{
+      const tipoAtivo = tipoDe(p.t);
+      const seg = fiiSegMap[p.t];
+      const tagClass = seg==="Papel"?"papel":seg==="Tijolo"?"tijolo":seg==="Fiagro"?"fiagro":seg==="Hibrido"?"hibrido":"";
+      const segCell = seg ? `<span class="tag ${tagClass}">${segLabel[seg]}</span>` : '<span style="color:var(--text-faint)">—</span>';
+      const dataFmt = new Date(p.data+'T00:00:00').toLocaleDateString('pt-BR');
+      tbody.innerHTML += `<tr>
+        <td><div class="ticker-name" style="font-size:12.8px">${p.t}</div></td>
+        <td><span class="tag ${tipoAtivo==='FII'?'tijolo':'hibrido'}" style="opacity:.85">${tipoAtivo}</span></td>
+        <td>${segCell}</td>
+        <td style="color:var(--text-dim)">${tipoProvLabel[p.tipo]||p.tipo}</td>
+        <td style="color:var(--text-dim)">${dataFmt}</td>
+        <td class="r">${p.qtd}</td>
+        <td class="r">${brl(p.vcota)}</td>
+        <td class="r" style="color:var(--emerald)">${brl(p.vtotal)}</td>
+      </tr>`;
+    });
+  }
+  const somaFiltrada = lista.reduce((s,p)=>s+p.vtotal,0);
+  document.getElementById('detContagem').textContent = `${lista.length} pagamentos`;
+  document.getElementById('detSomaDestaque').textContent = brl(somaFiltrada);
+}
+renderProventosDetalhado();
+['detFiltroTipoAtivo','detFiltroSegmento','detFiltroPeriodo'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderProventosDetalhado);
+});
+bindSortableHeaders('theadProventosDet', renderProventosDetalhado, sortStateDet);
+
+
+// ---------------- COTAÇÃO AO VIVO (HG Brasil) ----------------
+function showCotacoesStatus(msg, tone){
+  const el = document.getElementById('cotacoesStatus');
+  el.style.display = 'flex';
+  el.innerHTML = `<span>${tone==='pos'?'✅':tone==='neg'?'⚠️':'ℹ️'}</span><div>${msg}</div>`;
+}
+
+(async function initToken(){
+  try{
+    const r = await window.storage.get('hgbrasil_key', false);
+    if(r && r.value) document.getElementById('brapiToken').value = r.value;
+    return;
+  }catch(e){ /* window.storage indisponível (arquivo fora do artifact) — tenta localStorage */ }
+  try{
+    const local = localStorage.getItem('hgbrasil_key');
+    if(local) document.getElementById('brapiToken').value = local;
+  }catch(e2){ /* nem localStorage disponível, tudo bem, segue sem chave salva */ }
+})();
+
+document.getElementById('btnSalvarToken').addEventListener('click', async ()=>{
+  const val = document.getElementById('brapiToken').value.trim();
+  try{
+    await window.storage.set('hgbrasil_key', val, false);
+    showCotacoesStatus('Chave salva — não precisa colar de novo da próxima vez que abrir esse artifact aqui na conversa.', 'pos');
+    return;
+  }catch(e){ /* window.storage indisponível (arquivo aberto fora do artifact) — tenta localStorage */ }
+  try{
+    localStorage.setItem('hgbrasil_key', val);
+    showCotacoesStatus('Chave salva no armazenamento local do Chrome — vai continuar preenchida da próxima vez que abrir esse mesmo arquivo neste navegador.', 'pos');
+  }catch(e2){
+    showCotacoesStatus('Não consegui salvar a chave de nenhuma forma, mas ela funciona normalmente nesta sessão (até você fechar a aba).', 'neu');
+  }
+});
+
+document.getElementById('btnAtualizarCotacoes').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btnAtualizarCotacoes');
+  btn.disabled = true;
+  const key = document.getElementById('brapiToken').value.trim();
+  const tickers = [...acoes.map(a=>a.ticker), ...fiis.map(f=>f.ticker)];
+
+  if(!key){
+    showCotacoesStatus('⚠️ Nenhuma chave detectada no campo acima. Crie uma grátis em console.hgbrasil.com, cole e clique em "Salvar" antes de atualizar.', 'neg');
+    btn.disabled = false;
+    return;
+  }
+
+  let atualizados = 0;
+  let servicoIndisponivel = false;
+  let falharam = [];
+  let motivos = [];
+  let completados = 0;
+
+  showCotacoesStatus(`Buscando cotações na HG Brasil... (0/${tickers.length})`, 'neu');
+
+  async function buscarUmTicker(tk){
+    try{
+      const url = `https://api.hgbrasil.com/v2/finance/quotes?tickers=${encodeURIComponent('B3:'+tk)}&key=${encodeURIComponent(key)}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(()=>controller.abort(), 10000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      const r = data.results && data.results[0];
+      const alvo = acoes.find(a=>a.ticker===tk) || fiis.find(f=>f.ticker===tk);
+      if(r && r.quote && r.quote.value && alvo){
+        alvo.preco = r.quote.value;
+        alvo.valor = alvo.preco*alvo.qtd;
+        if(r.logos && r.logos.square_small) alvo.logo = r.logos.square_small;
+        atualizados++;
+      } else {
+        falharam.push(tk);
+        if(data.metadata && data.metadata.key_status && data.metadata.key_status!=='valid') servicoIndisponivel = 'chave';
+        if(motivos.length<3) motivos.push(`${tk}: HTTP ${res.status}${data.message ? ' — '+data.message : (data.metadata && data.metadata.key_status ? ' — chave: '+data.metadata.key_status : '')}`);
+      }
+    }catch(e){
+      falharam.push(tk);
+      const motivo = e.name==='AbortError' ? 'sem resposta em 10s (timeout)' : 'erro de rede/CORS';
+      if(motivos.length<3) motivos.push(`${tk}: ${motivo}`);
+    } finally {
+      completados++;
+      showCotacoesStatus(`Buscando cotações na HG Brasil... (${completados}/${tickers.length})`, 'neu');
+    }
+  }
+
+  // roda no máximo 5 chamadas por vez — evita que o navegador enfileire o resto
+  // e essas fiquem "cronometrando" tempo de espera antes mesmo de saírem
+  const CONCORRENCIA = 5;
+  let proximoIndex = 0;
+  const workers = new Array(Math.min(CONCORRENCIA, tickers.length)).fill(0).map(async ()=>{
+    while(proximoIndex < tickers.length){
+      const tk = tickers[proximoIndex++];
+      await buscarUmTicker(tk);
+    }
+  });
+  await Promise.all(workers);
+
+  if(atualizados===0){
+    if(servicoIndisponivel==='chave'){
+      showCotacoesStatus('🔑 A HG Brasil respondeu que a chave não é válida. Confira se copiou certo em console.hgbrasil.com, cole de novo e clique em "Salvar".', 'neg');
+    } else {
+      showCotacoesStatus(`Nenhum ativo foi atualizado. Exemplos do motivo: ${motivos.join(' | ')}. Confira se a chave está correta (cole e clique em Salvar de novo) ou se a HG Brasil está fora do ar.`, 'neg');
+    }
+  } else {
+    recalcTotais();
+    renderKpis();
+    renderAcoesTable();
+    renderFiisTable();
+    renderFiisResumo();
+    if(chartAlocacaoRef){
+      chartAlocacaoRef.data.datasets[0].data = [totalFiis, totalRF, totalAcoes];
+      chartAlocacaoRef.update();
+      renderLegendAlocacao();
+    }
+    showCotacoesStatus(`${atualizados} de ${tickers.length} ativos atualizados com sucesso.` + (falharam.length>0 ? ` Não vieram: ${falharam.join(', ')}. Exemplos do motivo: ${motivos.join(' | ')}.` : '') + ' Tabelas, KPIs e o gráfico "Ativos na Carteira" já refletem o preço novo — os demais gráficos (Evolução, Segmento) continuam com a foto de 30/06 até você enviar um relatório novo.', 'pos');
+  }
+  btn.disabled = false;
+});
+
+// ---------------- LANÇAMENTOS ----------------
+let lancamentos = [
+  { id:1, ordem:'Compra', tipoAtivo:'FII', ativo:'VGIA11', data:'2026-08-12', qtd:51,  preco:8.32,   custos:0, total:51*8.32 },
+  { id:2, ordem:'Compra', tipoAtivo:'FII', ativo:'BTCI11', data:'2026-08-12', qtd:54,  preco:9.01,   custos:0, total:54*9.01 },
+  { id:3, ordem:'Compra', tipoAtivo:'FII', ativo:'HGLG11', data:'2026-08-12', qtd:6,   preco:145.67, custos:0, total:6*145.67 },
+  { id:4, ordem:'Compra', tipoAtivo:'FII', ativo:'GGRC11', data:'2026-08-12', qtd:101, preco:9.59,   custos:0, total:101*9.59 },
+  { id:5, ordem:'Compra', tipoAtivo:'FII', ativo:'TRXF11', data:'2026-08-12', qtd:10,  preco:81.08,  custos:0, total:10*81.08 },
+  { id:6, ordem:'Compra', tipoAtivo:'FII', ativo:'KNRI11', data:'2026-08-12', qtd:6,   preco:151.29, custos:0, total:6*151.29 },
+  { id:7, ordem:'Compra', tipoAtivo:'Tesouro', ativo:'Tesouro IPCA+ 2040', data:'2026-08-12', qtd:1, preco:2000.00, custos:0, total:2000.00 },
+];
+let nextLancId = 1;
+let ordemSelecionada = 'Compra';
+const sortStateLanc = { key:'data', dir:-1 };
+const modalEl = document.getElementById('modalLancamento');
+
+function todayStr(){
+  const d = new Date();
+  const tz = d.getTimezoneOffset()*60000;
+  return new Date(d - tz).toISOString().slice(0,10);
+}
+
+async function carregarLancamentos(){
+  try{
+    const r = await window.storage.get('lancamentos_v1', false);
+    if(r && r.value) lancamentos = JSON.parse(r.value);
+  }catch(e){
+    try{
+      const local = localStorage.getItem('lancamentos_v1');
+      if(local) lancamentos = JSON.parse(local);
+      // se local também estiver vazio, mantém os lançamentos padrão (não zera)
+    }catch(e2){ /* nem localStorage disponível — mantém os lançamentos padrão já carregados */ }
+  }
+  nextLancId = lancamentos.reduce((m,l)=>Math.max(m,l.id||0),0)+1;
+  renderLancamentos();
+}
+async function salvarLancamentosStorage(){
+  try{ await window.storage.set('lancamentos_v1', JSON.stringify(lancamentos), false); return; }
+  catch(e){ /* window.storage indisponível fora do artifact — tenta localStorage */ }
+  try{ localStorage.setItem('lancamentos_v1', JSON.stringify(lancamentos)); }
+  catch(e2){ /* nem localStorage disponível — lançamentos ficam só nesta sessão */ }
+}
+
+function computeQtdTotal(list){
+  const porAtivo = {};
+  const cronologico = list.slice().sort((a,b)=> a.data.localeCompare(b.data) || a.id-b.id);
+  cronologico.forEach(l=>{
+    if(!(l.ativo in porAtivo)) porAtivo[l.ativo] = 0;
+    porAtivo[l.ativo] += (l.ordem==='Compra' ? l.qtd : -l.qtd);
+    l.qtdTotal = porAtivo[l.ativo];
+  });
+}
+
+const tipoAtivoLabel = {'Ação':'Ação','FII':'FII','Tesouro':'Tesouro Direto','Outro':'Outro'};
+
+function renderLancamentos(){
+  computeQtdTotal(lancamentos);
+  const lista = genericSort(lancamentos, sortStateLanc.key, sortStateLanc.dir, (item,key)=>item[key]);
+  const tbody = document.getElementById('tbodyLancamentos');
+  const vazio = document.getElementById('lancVazio');
+  tbody.innerHTML = '';
+  if(lista.length===0){ vazio.style.display='block'; return; }
+  vazio.style.display='none';
+  lista.forEach(l=>{
+    const badgeClass = l.ordem==='Compra' ? 'compra' : 'venda';
+    const dataFmt = new Date(l.data+'T00:00:00').toLocaleDateString('pt-BR');
+    tbody.innerHTML += `<tr>
+      <td><div class="ticker-name" style="font-size:12.8px">${l.ativo}</div></td>
+      <td style="color:var(--text-dim)">${tipoAtivoLabel[l.tipoAtivo]||l.tipoAtivo}</td>
+      <td><span class="order-badge ${badgeClass}">${l.ordem}</span></td>
+      <td class="r">${l.qtd}</td>
+      <td class="r">${brl(l.preco)}</td>
+      <td class="r">${brl(l.total)}</td>
+      <td class="r">${l.qtdTotal}</td>
+      <td style="color:var(--text-dim)">${dataFmt}</td>
+      <td class="r"><button class="btn-del-row" data-id="${l.id}" title="Remover lançamento">🗑</button></td>
+    </tr>`;
+  });
+  tbody.querySelectorAll('.btn-del-row').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = Number(btn.dataset.id);
+      lancamentos = lancamentos.filter(l=>l.id!==id);
+      salvarLancamentosStorage();
+      renderLancamentos();
+    });
+  });
+}
+bindSortableHeaders('theadLancamentos', renderLancamentos, sortStateLanc);
+carregarLancamentos();
+
+function setOrdem(o){
+  ordemSelecionada = o;
+  document.getElementById('btnOrdemCompra').classList.toggle('active', o==='Compra');
+  document.getElementById('btnOrdemVenda').classList.toggle('active', o==='Venda');
+}
+document.getElementById('btnOrdemCompra').addEventListener('click', ()=> setOrdem('Compra'));
+document.getElementById('btnOrdemVenda').addEventListener('click', ()=> setOrdem('Venda'));
+
+function popularAtivoSelect(){
+  const tipo = document.getElementById('lancTipoAtivo').value;
+  const sel = document.getElementById('lancAtivo');
+  const customWrap = document.getElementById('lancAtivoCustomWrap');
+  sel.innerHTML = '<option value="">Selecione...</option>';
+  if(tipo==='Outro'){
+    sel.style.display='none'; customWrap.style.display='block';
+    return;
+  }
+  sel.style.display=''; customWrap.style.display='none';
+  let opcoes = [];
+  if(tipo==='Ação') opcoes = acoes.map(a=>({v:a.ticker, l:`${a.ticker} — ${a.nome}`}));
+  else if(tipo==='FII') opcoes = fiis.map(f=>({v:f.ticker, l:`${f.ticker} — ${f.nome}`}));
+  else if(tipo==='Tesouro') opcoes = rendaFixa.map(r=>({v:r.nome, l:r.nome})).concat([{v:'Tesouro (novo título)', l:'+ Novo título do Tesouro'}]);
+  opcoes.forEach(o=> sel.innerHTML += `<option value="${o.v}">${o.l}</option>`);
+}
+document.getElementById('lancTipoAtivo').addEventListener('change', popularAtivoSelect);
+
+function recalcTotalModal(){
+  const qtd = parseFloat(document.getElementById('lancQtd').value)||0;
+  const preco = parseFloat(document.getElementById('lancPreco').value)||0;
+  const custos = parseFloat(document.getElementById('lancCustos').value)||0;
+  document.getElementById('lancValorTotal').textContent = brl(qtd*preco+custos);
+}
+['lancQtd','lancPreco','lancCustos'].forEach(id=> document.getElementById(id).addEventListener('input', recalcTotalModal));
+
+function esconderErroLanc(){ document.getElementById('lancErro').style.display='none'; }
+function mostrarErroLanc(msg){
+  const el = document.getElementById('lancErro');
+  el.textContent = msg; el.style.display='block';
+}
+
+function resetFormLancamento(){
+  setOrdem('Compra');
+  document.getElementById('lancTipoAtivo').value = 'Ação';
+  popularAtivoSelect();
+  document.getElementById('lancAtivoCustom').value = '';
+  document.getElementById('lancData').value = todayStr();
+  document.getElementById('lancQtd').value = '';
+  document.getElementById('lancPreco').value = '';
+  document.getElementById('lancCustos').value = '';
+  esconderErroLanc();
+  recalcTotalModal();
+}
+
+function abrirModalLancamento(){ resetFormLancamento(); modalEl.classList.add('open'); }
+function fecharModalLancamento(){ modalEl.classList.remove('open'); }
+document.getElementById('btnAbrirModalLancamento').addEventListener('click', abrirModalLancamento);
+document.getElementById('btnFecharModal').addEventListener('click', fecharModalLancamento);
+document.getElementById('btnCancelarLancamento').addEventListener('click', fecharModalLancamento);
+modalEl.addEventListener('click', (e)=>{ if(e.target===modalEl) fecharModalLancamento(); });
+
+document.getElementById('btnSalvarLancamento').addEventListener('click', ()=>{
+  const tipoAtivo = document.getElementById('lancTipoAtivo').value;
+  const ativoSel = document.getElementById('lancAtivo').value;
+  const ativoCustom = document.getElementById('lancAtivoCustom').value.trim();
+  const ativo = tipoAtivo==='Outro' ? ativoCustom : ativoSel;
+  const data = document.getElementById('lancData').value;
+  const qtd = parseFloat(document.getElementById('lancQtd').value);
+  const preco = parseFloat(document.getElementById('lancPreco').value);
+  const custos = parseFloat(document.getElementById('lancCustos').value)||0;
+
+  if(!ativo){ mostrarErroLanc('Selecione ou digite o ativo.'); return; }
+  if(!data){ mostrarErroLanc('Informe a data da transação.'); return; }
+  if(!qtd || qtd<=0){ mostrarErroLanc('Informe uma quantidade válida (maior que zero).'); return; }
+  if(isNaN(preco) || preco<0){ mostrarErroLanc('Informe um preço válido.'); return; }
+  esconderErroLanc();
+
+  const total = qtd*preco + custos;
+  lancamentos.push({ id: nextLancId++, ordem: ordemSelecionada, tipoAtivo, ativo, data, qtd, preco, custos, total });
+  salvarLancamentosStorage();
+  renderLancamentos();
+  fecharModalLancamento();
+});
+
+// ---------------- NAV ----------------
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-'+item.dataset.view).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
